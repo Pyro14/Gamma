@@ -4,14 +4,20 @@ import "./Header.css";
 
 
 // Componente de la cabecera superior de la aplicación
-const Header: React.FC = () => {
+// ---------------------------------------------------
+// Ahora recibimos "user" desde Boards.tsx
+interface HeaderProps {
+  user: any;
+}
+
+const Header: React.FC<HeaderProps> = ({ user }) => {
 
   // Simulación de usuario autenticado.
   // ⚠️ Más adelante, este valor se obtendrá del backend usando el JWT.
-  const userName = "Juan Pérez"; 
-  // Ejemplo real futuro:
-  // const userName = decodedToken.user_name;
+  // const userName = "Juan Pérez";
 
+  // 🔥 Ahora mostramos el email REAL del usuario autenticado
+  const userName = user?.email || "Usuario";
 
   return (
     // Contenedor principal del header
@@ -20,13 +26,11 @@ const Header: React.FC = () => {
       {/* Título del proyecto o nombre de la empresa */}
       <h1 className="header-title">NeoCare Health</h1>
 
-
       {/* Sección derecha del header: usuario + botón de logout */}
       <div className="header-right">
 
         {/* Muestra el nombre del usuario actualmente logueado */}
         <span className="user-name">{userName}</span>
-
 
         {/* Botón para cerrar sesión */}
         <button

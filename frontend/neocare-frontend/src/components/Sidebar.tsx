@@ -3,11 +3,26 @@ import React from "react";
 import "./Sidebar.css";
 
 
+// -----------------------------------------------------------
 // Componente funcional del menú lateral izquierdo (Sidebar)
-const Sidebar: React.FC = () => {
+// Ahora recibe PROPS para mostrar el usuario autenticado
+// -----------------------------------------------------------
+interface SidebarProps {
+  user: any; // Datos del usuario enviados desde Boards.tsx
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   return (
     // Etiqueta <aside> indica que es una barra lateral
     <aside className="sidebar">
+
+      {/* ============================================
+          MOSTRAR USUARIO AUTENTICADO EN EL SIDEBAR
+          ============================================ */}
+      <div className="sidebar-user">
+        <strong>👤 Usuario:</strong>
+        <p>{user?.email || "No identificado"}</p>
+      </div>
 
       {/* Título del menú */}
       <h2 className="sidebar-title">Menú</h2>
