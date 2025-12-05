@@ -1,0 +1,90 @@
+/* ===========================================================
+   CONTENEDOR GENERAL DEL TABLERO (BOARDS PAGE)
+   Ocupa toda la pantalla y coloca todos los elementos en columna:
+   Header arriba y el contenido (Sidebar + Kanban) debajo.
+   =========================================================== */
+.board-container {
+  height: 100vh;            /* Ocupa toda la pantalla */
+  width: 100vw;
+  background: #e6f0ff;      /* Azul muy suave para fondo general */
+  display: flex;
+  flex-direction: column;   /* Header arriba, resto debajo */
+  align-items: center;      /* Centra el contenido horizontalmente */
+}
+
+
+/* ===========================================================
+   TÍTULO DEL TABLERO (OPCIONAL SEGÚN DISEÑO)
+   Actualmente no lo usas, pero queda preparado para futuros cambios.
+   =========================================================== */
+.board-title {
+  font-size: 32px;
+  margin-bottom: 20px;
+  color: #003366;           /* Azul profesional */
+}
+
+
+/* ===========================================================
+   CONTENEDOR PRINCIPAL:
+   Contiene Sidebar a la izquierda y Kanban a la derecha.
+   =========================================================== */
+.content {
+  display: flex;
+  width: 100%;
+  margin-top: 20px;
+}
+
+
+/* ===========================================================
+   ÁREA DEL KANBAN:
+   Contiene las 3 columnas del tablero.
+   =========================================================== */
+.kanban {
+  display: flex;
+  justify-content: center;  /* Centra las columnas horizontalmente */
+  gap: 30px;                /* Separación entre columnas */
+  width: 90%;               /* Limita el ancho para dejar márgenes */
+}
+
+
+/* ===========================================================
+   COLUMNA INDIVIDUAL DEL KANBAN
+   Cada columna es una sección (Por Hacer, En Curso, Hecho)
+   con fondo suave, sombra y borde redondeado.
+   =========================================================== */
+.column {
+  background: #cfe2ff;      /* Azul claro (coherente con el diseño corporativo) */
+  padding: 20px;
+  width: 30%;               /* Cada columna ocupa 1/3 del área del kanban */
+  min-height: 70vh;         /* Altura mínima para mantener estructura */
+  border-radius: 12px;      /* Esquinas redondeadas */
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2); /* Sombra elegante */
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* ===========================================================
+   TÍTULO DE CADA COLUMNA
+   =========================================================== */
+.column h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 28px;           /* Tamaño grande y fácil de leer */
+  color: #002855;            /* Azul corporativo más elegante */
+  font-weight: 900;          /* Título robusto */
+  text-decoration: underline;      /* Subrayado como divisor visual */
+  text-underline-offset: 6px;      /* Separación moderna del subrayado */
+}
+
+
+/* ===========================================================
+   CONTENEDOR DE TARJETAS (CARDS)
+   Aquí se colocarán las tareas de cada columna.
+   =========================================================== */
+.cards {
+  flex-grow: 1;              /* Ocupa todo el espacio disponible de la columna */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;                 /* Espacio entre tarjetas */
+}
