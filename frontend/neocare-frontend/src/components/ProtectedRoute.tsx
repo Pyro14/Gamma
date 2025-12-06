@@ -14,20 +14,27 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   try {
-    // Decodificar JWT (la parte del Payload)
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const expiration = payload.exp * 1000; // exp viene en segundos → convertir a ms
+    // Comprobamos que el token tiene las 3 partes
+    const tokenParts = token.split(".");
+    if (tokenParts.length !== 3) {
+      localStorage.removeItem("token");
+      return <Navigate to="/login" replace />;
+    }
 
-    // Si el token está expirado, borrar y redirigir
+    // Decodificar JWT (la parte del Payload)
+    const payload = JSON.parse(atob(tokenParts[1]));
+
+    // FastAPI usa exp (epoch en segundos)
+    const expiration = payload.exp * 1000;
+
+    // Verificar expiración
     if (Date.now() > expiration) {
       localStorage.removeItem("token");
       localStorage.removeItem("user_email"); // opcional
-
-      alert("Tu sesión ha expirado. Por favor, inicia sesión de nuevo.");
       return <Navigate to="/login" replace />;
     }
-  } catch {
-    // Si no se puede decodificar el token → inválido → borrar
+  } catch (error) {
+    // Cualquier error al decodificar → token inválido
     localStorage.removeItem("token");
     return <Navigate to="/login" replace />;
   }

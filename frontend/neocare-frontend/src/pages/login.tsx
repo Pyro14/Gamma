@@ -102,6 +102,14 @@ const Login: React.FC = () => {
 
         {/* Mensaje de error */}
         {error && <p style={{ color: "red" }}>{error}</p>}
+
+        {/* Enlace para navegar a la página de registro */}
+        <p
+          style={{ marginTop: "12px", cursor: "pointer", color: "red" }}
+          onClick={() => navigate("/register")}
+        >
+          ¿No tienes cuenta? Regístrate aquí  👈
+        </p>
       </form>
     </div>
   );
