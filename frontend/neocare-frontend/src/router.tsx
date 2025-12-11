@@ -2,7 +2,7 @@
 import { createBrowserRouter } from "react-router-dom";
 
 // Importamos nuestras páginas
-import Login from "./pages/Login";
+import Login from "./pages/login";
 import Register from "./pages/Register";
 import Boards from "./pages/Boards";
 

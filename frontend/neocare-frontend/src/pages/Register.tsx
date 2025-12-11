@@ -113,7 +113,7 @@ const Register: React.FC = () => {
           style={{ marginTop: "12px", cursor: "pointer", color: "red" }}
           onClick={() => navigate("/login")}
         >
-          ¿Ya tienes cuenta? Inicia sesión aquí 👈
+          ¿Ya tienes cuenta? Inicia sesión aquí  👈
         </p>
       </form>
     </div>

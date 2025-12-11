@@ -14,6 +14,8 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     boards = relationship("Board", back_populates="owner")
+    cards = relationship("Card", back_populates="owner")
+
 
 
 class Board(Base):
@@ -25,6 +27,8 @@ class Board(Base):
 
     owner = relationship("User", back_populates="boards")
     lists = relationship("List", back_populates="board")
+    cards = relationship("Card", back_populates="board")
+
 
 
 class List(Base):
@@ -36,3 +40,5 @@ class List(Base):
     order = Column(Integer, nullable=False)
 
     board = relationship("Board", back_populates="lists")
+    cards = relationship("Card", back_populates="list")
+

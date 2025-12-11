@@ -9,6 +9,9 @@ from . import models
 from .auth.routes import router as auth_router
 from .boards.routes import router as boards_router
 
+from backend.cards.routes import router as cards_router
+
+
 app = FastAPI()
 
 #CONFIGURACIÓN DE CORS PARA PERMITIR LA CONEXIÓN DEL FRONTEND (5173)
@@ -31,6 +34,7 @@ Base.metadata.create_all(bind=engine)
 
 app.include_router(auth_router)
 app.include_router(boards_router)
+app.include_router(cards_router)
 
 @app.get("/ping")
 def db_ping(db: Session = Depends(get_db)):
