@@ -1,3 +1,7 @@
+from backend.models import Board
+from . import schemas, crud
+
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -5,7 +9,17 @@ from ..database import get_db
 from .. import models
 from ..auth.utils import get_current_user
 
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from backend.database import get_db
+
 router = APIRouter(prefix="/boards", tags=["boards"])
+
+@router.get("/", response_model=list[schemas.BoardOut])
+def list_boards(db: Session = Depends(get_db)):
+    return crud.get_boards(db)
+
 
 
 @router.get("/ping")
