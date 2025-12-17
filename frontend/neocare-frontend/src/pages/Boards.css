@@ -1,90 +1,197 @@
 /* ===========================================================
-   CONTENEDOR GENERAL DEL TABLERO (BOARDS PAGE)
-   Ocupa toda la pantalla y coloca todos los elementos en columna:
-   Header arriba y el contenido (Sidebar + Kanban) debajo.
+   CONTENEDOR GENERAL DEL TABLERO
    =========================================================== */
 .board-container {
-  height: 100vh;            /* Ocupa toda la pantalla */
+  height: 100vh;
   width: 100vw;
-  background: #e6f0ff;      /* Azul muy suave para fondo general */
+  background: #e6f0ff;
   display: flex;
-  flex-direction: column;   /* Header arriba, resto debajo */
-  align-items: center;      /* Centra el contenido horizontalmente */
+  flex-direction: column;
 }
 
-
 /* ===========================================================
-   TÍTULO DEL TABLERO (OPCIONAL SEGÚN DISEÑO)
-   Actualmente no lo usas, pero queda preparado para futuros cambios.
-   =========================================================== */
-.board-title {
-  font-size: 32px;
-  margin-bottom: 20px;
-  color: #003366;           /* Azul profesional */
-}
-
-
-/* ===========================================================
-   CONTENEDOR PRINCIPAL:
-   Contiene Sidebar a la izquierda y Kanban a la derecha.
+   CONTENEDOR PRINCIPAL
    =========================================================== */
 .content {
   display: flex;
-  width: 100%;
-  margin-top: 20px;
+  flex: 1;
 }
 
-
 /* ===========================================================
-   ÁREA DEL KANBAN:
-   Contiene las 3 columnas del tablero.
+   KANBAN
    =========================================================== */
 .kanban {
   display: flex;
-  justify-content: center;  /* Centra las columnas horizontalmente */
-  gap: 30px;                /* Separación entre columnas */
-  width: 90%;               /* Limita el ancho para dejar márgenes */
+  gap: 30px;
+  width: 100%;
+  padding: 20px;
 }
 
-
 /* ===========================================================
-   COLUMNA INDIVIDUAL DEL KANBAN
-   Cada columna es una sección (Por Hacer, En Curso, Hecho)
-   con fondo suave, sombra y borde redondeado.
+   COLUMNAS
    =========================================================== */
 .column {
-  background: #cfe2ff;      /* Azul claro (coherente con el diseño corporativo) */
+  background: #cfe2ff;
   padding: 20px;
-  width: 30%;               /* Cada columna ocupa 1/3 del área del kanban */
-  min-height: 70vh;         /* Altura mínima para mantener estructura */
-  border-radius: 12px;      /* Esquinas redondeadas */
-  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2); /* Sombra elegante */
+  width: 30%;
+  min-height: 70vh;
+  border-radius: 12px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
 }
 
-
-/* ===========================================================
-   TÍTULO DE CADA COLUMNA
-   =========================================================== */
 .column h2 {
   text-align: center;
   margin-bottom: 20px;
-  font-size: 28px;           /* Tamaño grande y fácil de leer */
-  color: #002855;            /* Azul corporativo más elegante */
-  font-weight: 900;          /* Título robusto */
-  text-decoration: underline;      /* Subrayado como divisor visual */
-  text-underline-offset: 6px;      /* Separación moderna del subrayado */
+  font-size: 24px;
+  color: #002855;
+  font-weight: 900;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+/* ===========================================================
+   CONTENEDOR DE TARJETAS
+   =========================================================== */
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* ===========================================================
+   TARJETA
+   =========================================================== */
+.card {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0px 3px 8px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* CUERPO */
+.card-body h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #003366;
+  word-wrap: break-word;   /* CLAVE PARA TEXTOS LARGOS, asi no desborda el titulo */
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.card-body p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #333;
+  white-space: pre-wrap;
+}
+
+/* FECHA */
+.card-deadline {
+  font-size: 12px;
+  background-color: #eef3ff;
+  color: #003366;
+  padding: 4px 8px;
+  border-radius: 6px;
+  width: fit-content;
+  font-weight: 600;
+}
+
+/* ===========================================================
+   BADGE DE ESTADO DE LA TARJETA
+   Indica visualmente el estado actual (Por hacer / En curso / Hecho)
+   =========================================================== */
+
+.status-badge {
+  display: inline-block;
+  align-self: flex-start;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* =======================
+   ESTADOS
+   ======================= */
+
+/* Por hacer → gris claro (no blanco para que se vea sobre la tarjeta) */
+.status-por-hacer {
+  background-color: #e5e5e5;
+  color: #333;
+}
+
+/* En curso → amarillo claro */
+.status-en-curso {
+  background-color: #fff3bf;
+  color: #664d00;
+}
+
+/* Hecho → amarillo más oscuro */
+.status-hecho {
+  background-color: #ffd966;
+  color: #5c4300;
 }
 
 
-/* ===========================================================
-   CONTENEDOR DE TARJETAS (CARDS)
-   Aquí se colocarán las tareas de cada columna.
-   =========================================================== */
-.cards {
-  flex-grow: 1;              /* Ocupa todo el espacio disponible de la columna */
+/* ============================
+   BADGES DE VENCIMIENTO
+   ============================ */
+.card-deadline.normal {
+  background-color: #eef3ff;
+  color: #003366;
+}
+
+.card-deadline.soon {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.card-deadline.expired {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+
+
+/* ACCIONES */
+.card-actions {
   display: flex;
-  flex-direction: column;
-  gap: 10px;                 /* Espacio entre tarjetas */
+  justify-content: flex-end;
+}
+
+.edit-card-btn {
+  background-color: #ddffdd;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.edit-card-btn:hover {
+  background-color: #bff0bf;
+}
+
+
+.delete-card-btn {
+  background-color: #ffdddd;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.delete-card-btn:hover {
+  background-color: #ffbcbc;
 }

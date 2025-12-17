@@ -13,7 +13,7 @@ class CardCreate(BaseModel):
     description: Optional[str] = None
     due_date: Optional[date] = None
     board_id: int
-    list_id: int
+    #list_id: int
 
 
 # -------------------------------------------------------

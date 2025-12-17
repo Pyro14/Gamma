@@ -60,3 +60,16 @@
   background-color: #b1cbff;           /* Azul un poco más oscuro */
 }
 
+
+/* ===========================================================
+   BOTÓN "CREAR TARJETA"
+   Es una opción especial del menú (antes era "Tablero")
+   =========================================================== */
+.sidebar-create {
+  color: #0d6efd;                      /* Azul más llamativo */
+  font-weight: 800;                    /* Más énfasis visual */
+}
+
+.sidebar-create:hover {
+  background-color: #9bbcff;           /* Azul distinto para destacar */
+}

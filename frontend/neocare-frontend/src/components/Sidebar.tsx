@@ -2,23 +2,22 @@
 import React from "react";
 import "./Sidebar.css";
 
-
 // -----------------------------------------------------------
 // Componente funcional del menú lateral izquierdo (Sidebar)
-// Ahora recibe PROPS para mostrar el usuario autenticado
 // -----------------------------------------------------------
 interface SidebarProps {
-  user: any; // Datos del usuario enviados desde Boards.tsx
+  user: any;
+  onCrearTarjeta: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ user }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, onCrearTarjeta }) => {
   return (
     // Etiqueta <aside> indica que es una barra lateral
     <aside className="sidebar">
 
       {/* ============================================
           MOSTRAR USUARIO AUTENTICADO EN EL SIDEBAR
-          ============================================ */}
+         ============================================ */}
       <div className="sidebar-user">
         <strong>👤 Usuario:</strong>
         <p>{user?.email || "No identificado"}</p>
@@ -30,10 +29,14 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       {/* Lista de opciones disponibles en el panel lateral */}
       <ul className="sidebar-list">
 
-        {/* En la fase actual son elementos estáticos.
-           Más adelante se convertirán en enlaces de navegación reales
-           usando <Link> de React Router DOM. */}
-        <li>🏷️ Tablero</li>
+        {/* BOTÓN CREAR TARJETA (DENTRO DEL SIDEBAR) */}
+        <li
+          className="sidebar-create"
+          onClick={onCrearTarjeta}
+        >
+          ➕ Crear tarjeta
+        </li>
+
         <li>⏱️ Mis horas</li>
         <li>📊 Informe</li>
         <li>⚙️ Configuración</li>
@@ -42,6 +45,4 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   );
 };
 
-
-// Exportamos el componente para utilizarlo dentro de Boards.tsx
 export default Sidebar;
