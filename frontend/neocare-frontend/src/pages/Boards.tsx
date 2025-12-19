@@ -2,12 +2,25 @@
 import React, { useEffect, useState } from "react";
 
 // Importamos dos componentes principales de la interfaz
+import ListColumn from "../components/ListColumn";
 import Header from "../components/Header";     // Barra superior
 import Sidebar from "../components/Sidebar";   // Menú lateral
 import CrearVentanaEmergente from "../components/CrearVentanaEmergente";
+import CardItem from "../components/CardItem";
+import { DndContext, DragOverlay } from "@dnd-kit/core"; // Contexto para drag-and-drop
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { arrayMove } from "@dnd-kit/sortable";
+import { closestCenter } from "@dnd-kit/core";
 
 // Importación de estilos específicos para la vista de tableros
 import "./Boards.css";
+
+// lista de estados de vencimiento
+const LIST_IDS = {
+  POR_HACER: 1,
+  EN_CURSO: 2,
+  HECHO: 3,
+};
 
 // ============================================================
 // Componente principal de la vista de Tablero (Boards)
@@ -39,6 +52,9 @@ const Boards: React.FC = () => {
   // Tarjeta que se está editando (null = estamos creando una nueva)
   const [cardEditando, setCardEditando] = useState<any | null>(null);
 
+  // 🔥 Tarjeta activa durante drag (para DragOverlay)
+  const [activeCard, setActiveCard] = useState<any | null>(null);
+
   /* =========================================================
       UTILIDAD: calcular estado de vencimiento
      ========================================================= */
@@ -64,7 +80,6 @@ const Boards: React.FC = () => {
     const fetchUserAndBoard = async () => {
       const token = localStorage.getItem("token");
 
-      // Si no hay token, no se puede continuar
       if (!token) {
         setError("No hay token. Inicia sesión primero.");
         setLoading(false);
@@ -72,7 +87,6 @@ const Boards: React.FC = () => {
       }
 
       try {
-        // 1️⃣ Obtener datos del usuario autenticado
         const userResponse = await fetch("http://127.0.0.1:8000/auth/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -86,7 +100,6 @@ const Boards: React.FC = () => {
         const userData = await userResponse.json();
         setUser(userData);
 
-        // 2️⃣ Obtener tableros del usuario
         const boardsResponse = await fetch("http://127.0.0.1:8000/boards/", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -99,7 +112,6 @@ const Boards: React.FC = () => {
 
         const boardsData = await boardsResponse.json();
 
-        // Por ahora usamos el primer tablero del usuario
         if (boardsData.length > 0) {
           setBoardId(boardsData[0].id);
         } else {
@@ -141,7 +153,13 @@ const Boards: React.FC = () => {
         }
 
         const data = await response.json();
-        setCards(data);
+
+        const normalized = data.map((card: any) => ({
+          ...card,
+          list_id: card.list_id ?? LIST_IDS.POR_HACER,
+        }));
+
+        setCards(normalized);
 
       } catch (error) {
         console.error("No se pudo conectar con el servidor");
@@ -152,21 +170,73 @@ const Boards: React.FC = () => {
   }, [boardId]);
 
   /* =========================================================
+      DRAG & DROP (FASE 3 + SUAVIZADO)
+     ========================================================= */
+
+  const handleDragStart = (event: any) => {
+    const { active } = event;
+    const found = cards.find((c) => c.id === active.id);
+    if (found) {
+      setActiveCard(found);
+    }
+  };
+
+  const handleDragOver = () => {};
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+
+    if (!over) {
+      setActiveCard(null);
+      return;
+    }
+
+    const activeCardId = active.id;
+
+    // Caso 1: se suelta sobre una COLUMNA
+    if (Object.values(LIST_IDS).includes(over.id)) {
+      const targetListId = over.id;
+
+      setCards((prev) =>
+        prev.map((card) =>
+          card.id === activeCardId
+            ? { ...card, list_id: targetListId }
+            : card
+        )
+      );
+
+      setActiveCard(null);
+      return;
+    }
+
+    // Caso 2: reordenación dentro de columna
+    if (active.id !== over.id) {
+      setCards((prevCards) => {
+        const oldIndex = prevCards.findIndex((c) => c.id === active.id);
+        const newIndex = prevCards.findIndex((c) => c.id === over.id);
+        return arrayMove(prevCards, oldIndex, newIndex);
+      });
+    }
+
+    setActiveCard(null);
+  };
+
+  /* =========================================================
       MENSAJES DE CARGA Y ERROR
      ========================================================= */
   if (loading) return <p style={{ padding: "20px" }}>Cargando tablero...</p>;
   if (error) return <p style={{ color: "red", padding: "20px" }}>{error}</p>;
+
+  console.log("CARDS EN BOARDS:", cards);
 
   /* =========================================================
       RENDER PRINCIPAL
      ========================================================= */
   return (
     <div className="board-container">
-
       <Header user={user} />
 
       <div className="content">
-
         <Sidebar
           user={user}
           onCrearTarjeta={() => {
@@ -175,92 +245,128 @@ const Boards: React.FC = () => {
           }}
         />
 
-        <div className="kanban">
+        <DndContext
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="kanban">
 
-          {/* --------- COLUMNA: POR HACER --------- */}
-          <div className="column">
-            <h2>Por Hacer</h2>
+            <ListColumn
+              title="Por Hacer"
+              listId={LIST_IDS.POR_HACER}
+              cards={cards}
+              getDeadlineStatus={getDeadlineStatus}
+              onEdit={(c) => {
+                setCardEditando(c);
+                setMostrarCrearTarjeta(true);
+              }}
+              onDelete={async (cardId) => {
+                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?")) return;
 
-            <div className="cards">
-              {cards.map((card) => (
-                <div key={card.id} className="card">
+                const token = localStorage.getItem("token");
 
-                  {/* ESTADO DE LA TARJETA */}
-                  <span className="status-badge status-por-hacer">
-                    Por hacer
-                  </span>
+                const response = await fetch(
+                  `http://127.0.0.1:8000/cards/${cardId}`,
+                  {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                  }
+                );
 
-                  {/* CUERPO */}
-                  <div className="card-body">
-                    <h3>{card.title}</h3>
-                    {card.description && <p>{card.description}</p>}
-                  </div>
+                if (!response.ok) {
+                  alert("Error al eliminar la tarjeta");
+                  return;
+                }
 
-                  {/* FECHA */}
-                  {card.due_date && (
-                    <div
-                      className={`card-deadline ${getDeadlineStatus(card.due_date)}`}
-                    >
-                      📅 Vence: {new Date(card.due_date).toLocaleDateString()}
-                    </div>
-                  )}
+                setCards((prev) => prev.filter((c) => c.id !== cardId));
+              }}
+            />
 
-                  {/* ACCIONES */}
-                  <div className="card-actions">
+            <ListColumn
+              title="En Curso"
+              listId={LIST_IDS.EN_CURSO}
+              cards={cards}
+              getDeadlineStatus={getDeadlineStatus}
+              onEdit={(c) => {
+                setCardEditando(c);
+                setMostrarCrearTarjeta(true);
+              }}
+              onDelete={async (cardId) => {
+                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?")) return;
 
-                    <button
-                      className="edit-card-btn"
-                      onClick={() => {
-                        setCardEditando(card);
-                        setMostrarCrearTarjeta(true);
-                      }}
-                    >
-                      ✏️ Editar
-                    </button>
+                const token = localStorage.getItem("token");
 
-                    <button
-                      className="delete-card-btn"
-                      onClick={async () => {
-                        if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?")) return;
+                const response = await fetch(
+                  `http://127.0.0.1:8000/cards/${cardId}`,
+                  {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                  }
+                );
 
-                        const token = localStorage.getItem("token");
+                if (!response.ok) {
+                  alert("Error al eliminar la tarjeta");
+                  return;
+                }
 
-                        const response = await fetch(
-                          `http://127.0.0.1:8000/cards/${card.id}`,
-                          {
-                            method: "DELETE",
-                            headers: {
-                              Authorization: `Bearer ${token}`,
-                            },
-                          }
-                        );
+                setCards((prev) => prev.filter((c) => c.id !== cardId));
+              }}
+            />
 
-                        if (!response.ok) {
-                          alert("Error al eliminar la tarjeta");
-                          return;
-                        }
+            <ListColumn
+              title="Hecho"
+              listId={LIST_IDS.HECHO}
+              cards={cards}
+              getDeadlineStatus={getDeadlineStatus}
+              onEdit={(c) => {
+                setCardEditando(c);
+                setMostrarCrearTarjeta(true);
+              }}
+              onDelete={async (cardId) => {
+                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?")) return;
 
-                        setCards((prev) =>
-                          prev.filter((c) => c.id !== card.id)
-                        );
-                      }}
-                    >
-                      🗑 Eliminar
-                    </button>
+                const token = localStorage.getItem("token");
 
-                  </div>
-                </div>
-              ))}
-            </div>
+                const response = await fetch(
+                  `http://127.0.0.1:8000/cards/${cardId}`,
+                  {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                  }
+                );
+
+                if (!response.ok) {
+                  alert("Error al eliminar la tarjeta");
+                  return;
+                }
+
+                setCards((prev) => prev.filter((c) => c.id !== cardId));
+              }}
+            />
+
           </div>
 
-          <div className="column"><h2>En Curso</h2></div>
-          <div className="column"><h2>Hecho</h2></div>
+          {/* ===================== DRAG OVERLAY ===================== */}
+          <DragOverlay>
+            {activeCard ? (
+              <CardItem
+                card={activeCard}
+                getDeadlineStatus={getDeadlineStatus}
+                onEdit={() => {}}
+                onDelete={() => {}}
+              />
+            ) : null}
+          </DragOverlay>
 
-        </div>
+        </DndContext>
       </div>
 
-      {/* MODAL CREAR / EDITAR */}
+      {/* =========================================================
+          MODAL CREAR / EDITAR
+         ========================================================= */}
+
       <CrearVentanaEmergente
         isOpen={mostrarCrearTarjeta}
         cardInicial={cardEditando}
@@ -273,7 +379,6 @@ const Boards: React.FC = () => {
 
           const token = localStorage.getItem("token");
 
-          // EDITAR
           if (cardEditando) {
             const response = await fetch(
               `http://127.0.0.1:8000/cards/${cardEditando.id}`,
@@ -292,13 +397,16 @@ const Boards: React.FC = () => {
               return;
             }
 
-            const updated = await response.json();
+            const updatedCard = await response.json();
+
             setCards((prev) =>
-              prev.map((c) => (c.id === updated.id ? updated : c))
+              prev.map((c) =>
+                c.id === updatedCard.id
+                  ? { ...c, ...updatedCard, list_id: c.list_id }
+                  : c
+              )
             );
-          }
-          // CREAR
-          else {
+          } else {
             const response = await fetch("http://127.0.0.1:8000/cards/", {
               method: "POST",
               headers: {
@@ -317,17 +425,19 @@ const Boards: React.FC = () => {
             }
 
             const newCard = await response.json();
-            setCards((prev) => [...prev, newCard]);
+
+            setCards((prev) => [
+              ...prev,
+              { ...newCard, list_id: LIST_IDS.POR_HACER },
+            ]);
           }
 
           setMostrarCrearTarjeta(false);
           setCardEditando(null);
         }}
       />
-
     </div>
   );
 };
 
 export default Boards;
-

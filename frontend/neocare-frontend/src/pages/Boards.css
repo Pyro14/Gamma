@@ -27,6 +27,39 @@
   padding: 20px;
 }
 
+/* =========================================================
+   DRAG & DROP – MEJORAS VISUALES
+   ========================================================= */
+
+/* Transición suave al reordenar tarjetas */
+.card {
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+
+/* Tarjeta mientras se arrastra (overlay) */
+.card.dragging {
+  opacity: 0.6;
+  transform: scale(1.03);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
+  cursor: grabbing;
+}
+
+/* Evita que el layout "salte" */
+.cards {
+  min-height: 40px;
+}
+
+/* Mejora visual de columnas al recibir tarjeta */
+.column {
+  transition: background-color 200ms ease;
+}
+
+/* (Opcional) color sutil al pasar por encima */
+.column:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+
 /* ===========================================================
    COLUMNAS
    =========================================================== */
