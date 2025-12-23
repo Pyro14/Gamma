@@ -1,19 +1,19 @@
-# cards/routes.py
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 
 from backend.database import get_db
-from backend.auth.utils import get_current_user  # Obtener usuario desde JWT
+from backend.auth.utils import get_current_user
 
 from backend.cards.schemas import (
     CardCreate,
     CardUpdate,
+    CardMove,
     CardResponse,
     CardDeleteResponse
 )
 from backend.cards.models import Card
-from backend.models import Board, List, User  # Modelos ya existentes
+from backend.models import Board, List, User
 
 
 router = APIRouter(
@@ -31,7 +31,6 @@ def create_card(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Validar que el tablero pertenece al usuario
     board = db.query(Board).filter(
         Board.id == card.board_id,
         Board.user_id == current_user.id
@@ -39,11 +38,10 @@ def create_card(
 
     if not board:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=403,
             detail="No tienes permiso para crear tarjetas en este tablero."
         )
 
-    # 2. Buscar automáticamente la lista "Por hacer" del tablero
     por_hacer_list = db.query(List).filter(
         List.board_id == board.id,
         List.name.ilike("por hacer")
@@ -52,23 +50,21 @@ def create_card(
     if not por_hacer_list:
         raise HTTPException(
             status_code=400,
-            detail="La lista 'Por hacer' no existe para este tablero."
+            detail="La lista 'Por hacer' no existe."
         )
 
-    # 3. Validar título no vacío
-    if not card.title.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="El título no puede estar vacío."
-        )
+    # Obtener último orden de la lista
+    last_order = db.query(Card).filter(
+        Card.list_id == por_hacer_list.id
+    ).count()
 
-    # 4. Crear tarjeta (SIN recibir list_id del frontend)
     new_card = Card(
         title=card.title,
         description=card.description,
         due_date=card.due_date,
         board_id=board.id,
-        list_id=por_hacer_list.id,   # 👈 ASIGNADO AUTOMÁTICAMENTE
+        list_id=por_hacer_list.id,
+        order=last_order,
         user_id=current_user.id
     )
 
@@ -80,7 +76,7 @@ def create_card(
 
 
 # ---------------------------------------------------------
-# GET /cards?board_id=... → Listar tarjetas de un tablero
+# GET /cards?board_id=...
 # ---------------------------------------------------------
 @router.get("/", response_model=list[CardResponse])
 def list_cards(
@@ -88,52 +84,23 @@ def list_cards(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Verificar que el tablero pertenece al usuario
     board = db.query(Board).filter(
         Board.id == board_id,
         Board.user_id == current_user.id
     ).first()
 
     if not board:
-        raise HTTPException(
-            status_code=403,
-            detail="No puedes ver tarjetas de este tablero."
-        )
+        raise HTTPException(status_code=403)
 
-    # 2. Obtener tarjetas del tablero
     cards = db.query(Card).filter(
         Card.board_id == board_id
-    ).all()
+    ).order_by(Card.list_id, Card.order).all()
 
     return cards
 
 
 # ---------------------------------------------------------
-# GET /cards/{id} → Ver una tarjeta en detalle
-# ---------------------------------------------------------
-@router.get("/{card_id}", response_model=CardResponse)
-def get_card(
-    card_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    card = db.query(Card).filter(Card.id == card_id).first()
-
-    if not card:
-        raise HTTPException(status_code=404, detail="Tarjeta no encontrada.")
-
-    # Validar permiso del usuario
-    if card.board.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="No puedes ver esta tarjeta."
-        )
-
-    return card
-
-
-# ---------------------------------------------------------
-# PATCH /cards/{id} → Editar tarjeta
+# PATCH /cards/{id} → Editar
 # ---------------------------------------------------------
 @router.patch("/{card_id}", response_model=CardResponse)
 def update_card(
@@ -145,25 +112,14 @@ def update_card(
     card = db.query(Card).filter(Card.id == card_id).first()
 
     if not card:
-        raise HTTPException(
-            status_code=404,
-            detail="Tarjeta no encontrada."
-        )
+        raise HTTPException(status_code=404)
 
-    # Validar permiso del usuario
     if card.board.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="No tienes permiso para editar esta tarjeta."
-        )
+        raise HTTPException(status_code=403)
 
-    # Actualizaciones parciales
     if card_update.title is not None:
         if not card_update.title.strip():
-            raise HTTPException(
-                status_code=400,
-                detail="El título no puede estar vacío."
-            )
+            raise HTTPException(status_code=400)
         card.title = card_update.title
 
     if card_update.description is not None:
@@ -172,21 +128,62 @@ def update_card(
     if card_update.due_date is not None:
         card.due_date = card_update.due_date
 
-    # Cambio de columna (list_id) SOLO si se envía
     if card_update.list_id is not None:
-        # Validar que la lista pertenece al mismo tablero
         list_obj = db.query(List).filter(
             List.id == card_update.list_id,
             List.board_id == card.board_id
         ).first()
 
         if not list_obj:
-            raise HTTPException(
-                status_code=400,
-                detail="La lista no pertenece a este tablero."
-            )
+            raise HTTPException(status_code=400)
 
         card.list_id = card_update.list_id
+
+    db.commit()
+    db.refresh(card)
+
+    return card
+
+
+# ---------------------------------------------------------
+# 🔥 PATCH /cards/{id}/move
+# ---------------------------------------------------------
+@router.patch("/{card_id}/move", response_model=CardResponse)
+def move_card(
+    card_id: int,
+    move: CardMove,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    card = db.query(Card).filter(Card.id == card_id).first()
+
+    if not card:
+        raise HTTPException(status_code=404)
+
+    if card.board.user_id != current_user.id:
+        raise HTTPException(status_code=403)
+
+    target_list = db.query(List).filter(
+        List.id == move.list_id,
+        List.board_id == card.board_id
+    ).first()
+
+    if not target_list:
+        raise HTTPException(status_code=400)
+
+    affected_cards = db.query(Card).filter(
+        and_(
+            Card.list_id == move.list_id,
+            Card.order >= move.order,
+            Card.id != card.id
+        )
+    ).order_by(Card.order.asc()).all()
+
+    for c in affected_cards:
+        c.order += 1
+
+    card.list_id = move.list_id
+    card.order = move.order
 
     db.commit()
     db.refresh(card)
@@ -206,16 +203,10 @@ def delete_card(
     card = db.query(Card).filter(Card.id == card_id).first()
 
     if not card:
-        raise HTTPException(
-            status_code=404,
-            detail="Tarjeta no encontrada."
-        )
+        raise HTTPException(status_code=404)
 
     if card.board.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403,
-            detail="No tienes permiso para eliminar esta tarjeta."
-        )
+        raise HTTPException(status_code=403)
 
     db.delete(card)
     db.commit()

@@ -12,7 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
-from backend.database import Base  # importante: importar Base igual que en models.py (raíz)
+from backend.database import Base
 
 
 class Card(Base):
@@ -20,7 +20,7 @@ class Card(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # Relaciones con otras tablas
+    # Relaciones
     board_id = Column(Integer, ForeignKey("boards.id"), nullable=False)
     list_id = Column(Integer, ForeignKey("lists.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -30,7 +30,10 @@ class Card(Base):
     description = Column(Text, nullable=True)
     due_date = Column(Date, nullable=True)
 
-    # Timestamps automáticos
+    # orden dentro de la lista
+    order = Column("order", Integer, nullable=False, default=0)
+
+    # Timestamps
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -43,7 +46,7 @@ class Card(Base):
         nullable=False
     )
 
-    # RELATIONSHIPS
+    # Relationships
     board = relationship("Board", back_populates="cards")
     list = relationship("List", back_populates="cards")
     owner = relationship("User", back_populates="cards")
