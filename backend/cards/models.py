@@ -30,8 +30,6 @@ class Card(Base):
     description = Column(Text, nullable=True)
     due_date = Column(Date, nullable=True)
 
-    # orden dentro de la lista
-    order = Column("order", Integer, nullable=False, default=0)
 
     # Timestamps
     created_at = Column(
@@ -50,3 +48,4 @@ class Card(Base):
     board = relationship("Board", back_populates="cards")
     list = relationship("List", back_populates="cards")
     owner = relationship("User", back_populates="cards")
+    worklogs = relationship("WorkLog", back_populates="card", cascade="all, delete-orphan")

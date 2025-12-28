@@ -15,6 +15,8 @@ class User(Base):
 
     boards = relationship("Board", back_populates="owner")
     cards = relationship("Card", back_populates="owner")
+    worklogs = relationship("WorkLog",back_populates="user",cascade="all, delete-orphan")
+    
 
 
 

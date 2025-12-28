@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import and_
 
 from backend.database import get_db
 from backend.auth.utils import get_current_user
@@ -8,7 +7,6 @@ from backend.auth.utils import get_current_user
 from backend.cards.schemas import (
     CardCreate,
     CardUpdate,
-    CardMove,
     CardResponse,
     CardDeleteResponse
 )
@@ -31,6 +29,7 @@ def create_card(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Comprobar que el tablero pertenece al usuario
     board = db.query(Board).filter(
         Board.id == card.board_id,
         Board.user_id == current_user.id
@@ -42,6 +41,7 @@ def create_card(
             detail="No tienes permiso para crear tarjetas en este tablero."
         )
 
+    # Buscar la lista "Por hacer"
     por_hacer_list = db.query(List).filter(
         List.board_id == board.id,
         List.name.ilike("por hacer")
@@ -53,18 +53,13 @@ def create_card(
             detail="La lista 'Por hacer' no existe."
         )
 
-    # Obtener último orden de la lista
-    last_order = db.query(Card).filter(
-        Card.list_id == por_hacer_list.id
-    ).count()
-
+    # Crear tarjeta (SIN order)
     new_card = Card(
         title=card.title,
         description=card.description,
         due_date=card.due_date,
         board_id=board.id,
         list_id=por_hacer_list.id,
-        order=last_order,
         user_id=current_user.id
     )
 
@@ -94,13 +89,13 @@ def list_cards(
 
     cards = db.query(Card).filter(
         Card.board_id == board_id
-    ).order_by(Card.list_id, Card.order).all()
+    ).order_by(Card.list_id).all()
 
     return cards
 
 
 # ---------------------------------------------------------
-# PATCH /cards/{id} → Editar
+# PATCH /cards/{id} → Editar tarjeta
 # ---------------------------------------------------------
 @router.patch("/{card_id}", response_model=CardResponse)
 def update_card(
@@ -138,52 +133,6 @@ def update_card(
             raise HTTPException(status_code=400)
 
         card.list_id = card_update.list_id
-
-    db.commit()
-    db.refresh(card)
-
-    return card
-
-
-# ---------------------------------------------------------
-# 🔥 PATCH /cards/{id}/move
-# ---------------------------------------------------------
-@router.patch("/{card_id}/move", response_model=CardResponse)
-def move_card(
-    card_id: int,
-    move: CardMove,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    card = db.query(Card).filter(Card.id == card_id).first()
-
-    if not card:
-        raise HTTPException(status_code=404)
-
-    if card.board.user_id != current_user.id:
-        raise HTTPException(status_code=403)
-
-    target_list = db.query(List).filter(
-        List.id == move.list_id,
-        List.board_id == card.board_id
-    ).first()
-
-    if not target_list:
-        raise HTTPException(status_code=400)
-
-    affected_cards = db.query(Card).filter(
-        and_(
-            Card.list_id == move.list_id,
-            Card.order >= move.order,
-            Card.id != card.id
-        )
-    ).order_by(Card.order.asc()).all()
-
-    for c in affected_cards:
-        c.order += 1
-
-    card.list_id = move.list_id
-    card.order = move.order
 
     db.commit()
     db.refresh(card)

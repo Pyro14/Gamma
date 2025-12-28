@@ -41,7 +41,6 @@ class CardResponse(BaseModel):
     due_date: Optional[date]
     board_id: int
     list_id: int
-    order: int
     user_id: Optional[int]
     created_at: datetime
     updated_at: datetime
