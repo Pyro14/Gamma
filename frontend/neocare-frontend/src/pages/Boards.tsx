@@ -3,12 +3,15 @@ import React, { useEffect, useState } from "react";
 
 // Importamos dos componentes principales de la interfaz
 import ListColumn from "../components/ListColumn";
-import Header from "../components/Header";     // Barra superior
-import Sidebar from "../components/Sidebar";   // Menú lateral
+import Header from "../components/Header"; // Barra superior
+import Sidebar from "../components/Sidebar"; // Menú lateral
 import CrearVentanaEmergente from "../components/CrearVentanaEmergente";
 import CardItem from "../components/CardItem";
+
+// ✅ Modal de horas
+import WorklogsModal from "../components/WorklogsModal";
+
 import { DndContext, DragOverlay } from "@dnd-kit/core"; // Contexto para drag-and-drop
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { arrayMove } from "@dnd-kit/sortable";
 import { closestCenter } from "@dnd-kit/core";
 
@@ -26,7 +29,6 @@ const LIST_IDS = {
 // Componente principal de la vista de Tablero (Boards)
 // ============================================================
 const Boards: React.FC = () => {
-
   /* =========================================================
       ESTADOS PRINCIPALES
      ========================================================= */
@@ -55,6 +57,10 @@ const Boards: React.FC = () => {
   // 🔥 Tarjeta activa durante drag (para DragOverlay)
   const [activeCard, setActiveCard] = useState<any | null>(null);
 
+  // ✅ Worklogs modal
+  const [isWorklogsOpen, setIsWorklogsOpen] = useState(false);
+  const [worklogsCard, setWorklogsCard] = useState<any | null>(null);
+
   /* =========================================================
       UTILIDAD: calcular estado de vencimiento
      ========================================================= */
@@ -68,9 +74,9 @@ const Boards: React.FC = () => {
     const diffTime = fecha.getTime() - hoy.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return "expired";   // 🔴 vencido
-    if (diffDays <= 2) return "soon";     // 🟠 próximo
-    return "normal";                      // 🟢 normal
+    if (diffDays < 0) return "expired"; // 🔴 vencido
+    if (diffDays <= 2) return "soon"; // 🟠 próximo
+    return "normal"; // 🟢 normal
   }
 
   /* =========================================================
@@ -117,7 +123,6 @@ const Boards: React.FC = () => {
         } else {
           setError("El usuario no tiene tableros");
         }
-
       } catch (err) {
         setError("No se pudo conectar con el servidor.");
       }
@@ -160,7 +165,6 @@ const Boards: React.FC = () => {
         }));
 
         setCards(normalized);
-
       } catch (error) {
         console.error("No se pudo conectar con el servidor");
       }
@@ -170,9 +174,22 @@ const Boards: React.FC = () => {
   }, [boardId]);
 
   /* =========================================================
-      DRAG & DROP (FASE 3 + SUAVIZADO)
+      ✅ Abrir modal de horas
      ========================================================= */
+  const openWorklogs = (card: any) => {
+    console.log("Click Horas -> card:", card);
+    setWorklogsCard(card);
+    setIsWorklogsOpen(true);
+  };
 
+  const closeWorklogs = () => {
+    setIsWorklogsOpen(false);
+    setWorklogsCard(null);
+  };
+
+  /* =========================================================
+      DRAG & DROP
+     ========================================================= */
   const handleDragStart = (event: any) => {
     const { active } = event;
     const found = cards.find((c) => c.id === active.id);
@@ -199,9 +216,7 @@ const Boards: React.FC = () => {
 
       setCards((prev) =>
         prev.map((card) =>
-          card.id === activeCardId
-            ? { ...card, list_id: targetListId }
-            : card
+          card.id === activeCardId ? { ...card, list_id: targetListId } : card
         )
       );
 
@@ -227,8 +242,6 @@ const Boards: React.FC = () => {
   if (loading) return <p style={{ padding: "20px" }}>Cargando tablero...</p>;
   if (error) return <p style={{ color: "red", padding: "20px" }}>{error}</p>;
 
-  console.log("CARDS EN BOARDS:", cards);
-
   /* =========================================================
       RENDER PRINCIPAL
      ========================================================= */
@@ -252,18 +265,19 @@ const Boards: React.FC = () => {
           onDragEnd={handleDragEnd}
         >
           <div className="kanban">
-
             <ListColumn
               title="Por Hacer"
               listId={LIST_IDS.POR_HACER}
               cards={cards}
               getDeadlineStatus={getDeadlineStatus}
+              onWorklogs={openWorklogs}
               onEdit={(c) => {
                 setCardEditando(c);
                 setMostrarCrearTarjeta(true);
               }}
               onDelete={async (cardId) => {
-                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?")) return;
+                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?"))
+                  return;
 
                 const token = localStorage.getItem("token");
 
@@ -289,12 +303,14 @@ const Boards: React.FC = () => {
               listId={LIST_IDS.EN_CURSO}
               cards={cards}
               getDeadlineStatus={getDeadlineStatus}
+              onWorklogs={openWorklogs}
               onEdit={(c) => {
                 setCardEditando(c);
                 setMostrarCrearTarjeta(true);
               }}
               onDelete={async (cardId) => {
-                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?")) return;
+                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?"))
+                  return;
 
                 const token = localStorage.getItem("token");
 
@@ -320,12 +336,14 @@ const Boards: React.FC = () => {
               listId={LIST_IDS.HECHO}
               cards={cards}
               getDeadlineStatus={getDeadlineStatus}
+              onWorklogs={openWorklogs}
               onEdit={(c) => {
                 setCardEditando(c);
                 setMostrarCrearTarjeta(true);
               }}
               onDelete={async (cardId) => {
-                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?")) return;
+                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?"))
+                  return;
 
                 const token = localStorage.getItem("token");
 
@@ -345,7 +363,6 @@ const Boards: React.FC = () => {
                 setCards((prev) => prev.filter((c) => c.id !== cardId));
               }}
             />
-
           </div>
 
           {/* ===================== DRAG OVERLAY ===================== */}
@@ -354,19 +371,18 @@ const Boards: React.FC = () => {
               <CardItem
                 card={activeCard}
                 getDeadlineStatus={getDeadlineStatus}
+                onWorklogs={() => {}}
                 onEdit={() => {}}
                 onDelete={() => {}}
               />
             ) : null}
           </DragOverlay>
-
         </DndContext>
       </div>
 
       {/* =========================================================
           MODAL CREAR / EDITAR
          ========================================================= */}
-
       <CrearVentanaEmergente
         isOpen={mostrarCrearTarjeta}
         cardInicial={cardEditando}
@@ -435,6 +451,17 @@ const Boards: React.FC = () => {
           setMostrarCrearTarjeta(false);
           setCardEditando(null);
         }}
+      />
+
+      {/* =========================================================
+          ✅ MODAL DE HORAS (WORKLOGS)
+         ========================================================= */}
+      <WorklogsModal
+        isOpen={isWorklogsOpen}
+        onClose={closeWorklogs}
+        card={worklogsCard}
+        currentUser={user}
+        apiBaseUrl="http://127.0.0.1:8000"
       />
     </div>
   );

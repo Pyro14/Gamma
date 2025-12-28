@@ -1,27 +1,19 @@
-// Importamos React
 import React from "react";
-
-// Importamos utilidades de dnd-kit
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
-// Importamos el componente de tarjeta
 import CardItem from "./CardItem";
 
-/* =========================================================
-    Componente de Columna del Kanban (ListColumn)
-    - Es droppable
-    - Contiene tarjetas sortable
-    - No conoce backend ni estado global
-   ========================================================= */
-
 interface ListColumnProps {
-  title: string;                  // Título visible de la columna
-  listId: number;                 // ID lógico de la columna (1, 2, 3)
-  cards: any[];                   // Todas las tarjetas del tablero
+  title: string;
+  listId: number;
+  cards: any[];
   getDeadlineStatus: (date: string) => string;
   onEdit: (card: any) => void;
   onDelete: (cardId: number) => void;
+
+  // ✅ NUEVO
+  onWorklogs: (card: any) => void;
 }
 
 const ListColumn: React.FC<ListColumnProps> = ({
@@ -31,38 +23,23 @@ const ListColumn: React.FC<ListColumnProps> = ({
   getDeadlineStatus,
   onEdit,
   onDelete,
+  onWorklogs,
 }) => {
-
-  /* =========================================================
-      DROPPABLE: la columna acepta tarjetas
-     ========================================================= */
-
   const { setNodeRef } = useDroppable({
-    id: listId, // ID de la columna (1, 2, 3)
+    id: listId,
   });
-
-  /* =========================================================
-      FILTRADO TEMPORAL (FASE 6.2)
-      - Tarjetas SIN list_id → Por hacer (1)
-      - Tarjetas CON list_id → su columna
-     ========================================================= */
 
   const columnCards = cards.filter((card) => {
     const effectiveListId =
-      card.list_id === undefined || card.list_id === null
-        ? 1
-        : Number(card.list_id);
+      card.list_id === undefined || card.list_id === null ? 1 : Number(card.list_id);
 
     return effectiveListId === listId;
   });
 
   return (
     <div ref={setNodeRef} className="column">
-
-      {/* TÍTULO DE LA COLUMNA */}
       <h2>{title}</h2>
 
-      {/* CONTENEDOR DE TARJETAS */}
       <div className="cards">
         <SortableContext
           items={columnCards.map((card) => card.id)}
@@ -75,6 +52,7 @@ const ListColumn: React.FC<ListColumnProps> = ({
               getDeadlineStatus={getDeadlineStatus}
               onEdit={onEdit}
               onDelete={onDelete}
+              onWorklogs={onWorklogs}   // ✅ AQUÍ ESTABA EL FALLO
             />
           ))}
         </SortableContext>
