@@ -24,6 +24,13 @@ const WorklogsModal: React.FC<WorklogsModalProps> = ({
 
   const [worklogs, setWorklogs] = useState<AnyObj[]>([]);
 
+  // ================================
+  // TOTAL DE HORAS (calculado)
+  // ================================
+  const totalHours = useMemo(() => {
+    return worklogs.reduce((acc, wl) => acc + Number(wl.hours || 0), 0);
+  }, [worklogs]);
+
   // Form crear
   const [hours, setHours] = useState<string>("");
   const [workDate, setWorkDate] = useState<string>(() => {
@@ -113,11 +120,9 @@ const WorklogsModal: React.FC<WorklogsModalProps> = ({
     setError("");
 
     try {
-      // Nota: si tu backend usa otros nombres de campos, aquí se cambia.
-      // Los más típicos: hours, work_date, note.
       const payload = {
         hours: Number(hours),
-        work_date: workDate,
+        date: workDate,
         note: note || null,
       };
 
@@ -144,7 +149,7 @@ const WorklogsModal: React.FC<WorklogsModalProps> = ({
   const startEdit = (wl: AnyObj) => {
     setEditingId(Number(wl.id));
     setEditHours(String(wl.hours ?? ""));
-    setEditWorkDate(String(wl.work_date ?? wl.date ?? wl.workDate ?? ""));
+    setEditWorkDate(String(wl.date ?? ""));
     setEditNote(String(wl.note ?? ""));
   };
 
@@ -171,7 +176,7 @@ const WorklogsModal: React.FC<WorklogsModalProps> = ({
     try {
       const payload = {
         hours: Number(editHours),
-        work_date: editWorkDate,
+        date: editWorkDate,
         note: editNote || null,
       };
 
@@ -291,6 +296,23 @@ const WorklogsModal: React.FC<WorklogsModalProps> = ({
           </div>
         </div>
 
+        {/* ================================
+            TOTAL DE HORAS
+        ================================ */}
+        <div
+          style={{
+            margin: "10px 0",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            background: "#f5f5f5",
+            fontWeight: 600,
+            textAlign: "right",
+          }}
+        >
+          ⏱ Total horas de la tarjeta:{" "}
+          <span style={{ color: "#2e7d32" }}>{totalHours.toFixed(2)} h</span>
+        </div>
+
         {/* Lista */}
         <div className="wl-list">
           {loading ? <p>Cargando...</p> : null}
@@ -303,7 +325,7 @@ const WorklogsModal: React.FC<WorklogsModalProps> = ({
             const mine = isMine(wl);
 
             const wlHours = wl.hours ?? "";
-            const wlDate = wl.work_date ?? wl.date ?? "";
+            const wlDate = wl.date ?? "";
             const wlNote = wl.note ?? "";
 
             const editing = editingId === id;

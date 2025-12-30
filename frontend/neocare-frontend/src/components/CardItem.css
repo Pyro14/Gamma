@@ -1,0 +1,23 @@
+.card {
+  position: relative;
+}
+
+/* ===========================
+   TOTAL DE HORAS EN TARJETA
+=========================== */
+.card-hours-total {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+
+  background: #1f2937; /* gris oscuro */
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  padding: 4px 8px;
+  border-radius: 6px;
+
+  z-index: 5;
+}

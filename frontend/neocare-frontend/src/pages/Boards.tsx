@@ -118,10 +118,15 @@ const Boards: React.FC = () => {
 
         const boardsData = await boardsResponse.json();
 
-        if (boardsData.length > 0) {
-          setBoardId(boardsData[0].id);
+        // 🔥 BUSCAR EL TABLERO DEL USUARIO LOGUEADO
+        const myBoard = boardsData.find(
+          (b: any) => b.user_id === userData.id
+        );
+
+        if (myBoard) {
+          setBoardId(myBoard.id);
         } else {
-          setError("El usuario no tiene tableros");
+          setError("El usuario no tiene tablero asignado");
         }
       } catch (err) {
         setError("No se pudo conectar con el servidor.");
@@ -132,6 +137,40 @@ const Boards: React.FC = () => {
 
     fetchUserAndBoard();
   }, []);
+
+  /* =========================================================
+  /*Funcion reutilizable para cargar las tarjetas del tablero activo*/
+  /* ========================================================= */
+
+  const reloadCards = async () => {
+  if (!boardId) return;
+
+  const token = localStorage.getItem("token");
+
+  const response = await fetch(
+    `http://127.0.0.1:8000/cards/?board_id=${boardId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+
+  const normalized = data.map((card: any) => ({
+    ...card,
+    list_id: card.list_id ?? LIST_IDS.POR_HACER,
+    total_hours:
+      typeof card.total_hours === "number" ? card.total_hours : 0,
+  }));
+
+  setCards(normalized);
+};
+
+
+
+
 
   /* =========================================================
       useEffect → Cargar tarjetas del tablero activo
@@ -162,6 +201,8 @@ const Boards: React.FC = () => {
         const normalized = data.map((card: any) => ({
           ...card,
           list_id: card.list_id ?? LIST_IDS.POR_HACER,
+          total_hours:
+            typeof card.total_hours === "number" ? card.total_hours : 0,
         }));
 
         setCards(normalized);
@@ -174,10 +215,9 @@ const Boards: React.FC = () => {
   }, [boardId]);
 
   /* =========================================================
-      ✅ Abrir modal de horas
+      ✅ Abrir modal de horas Worklogs
      ========================================================= */
   const openWorklogs = (card: any) => {
-    console.log("Click Horas -> card:", card);
     setWorklogsCard(card);
     setIsWorklogsOpen(true);
   };
@@ -192,9 +232,15 @@ const Boards: React.FC = () => {
      ========================================================= */
   const handleDragStart = (event: any) => {
     const { active } = event;
+
     const found = cards.find((c) => c.id === active.id);
+
     if (found) {
-      setActiveCard(found);
+      setActiveCard({
+        ...found,
+        total_hours:
+          typeof found.total_hours === "number" ? found.total_hours : 0,
+      });
     }
   };
 
@@ -210,7 +256,6 @@ const Boards: React.FC = () => {
 
     const activeCardId = active.id;
 
-    // Caso 1: se suelta sobre una COLUMNA
     if (Object.values(LIST_IDS).includes(over.id)) {
       const targetListId = over.id;
 
@@ -224,7 +269,6 @@ const Boards: React.FC = () => {
       return;
     }
 
-    // Caso 2: reordenación dentro de columna
     if (active.id !== over.id) {
       setCards((prevCards) => {
         const oldIndex = prevCards.findIndex((c) => c.id === active.id);
@@ -275,27 +319,9 @@ const Boards: React.FC = () => {
                 setCardEditando(c);
                 setMostrarCrearTarjeta(true);
               }}
-              onDelete={async (cardId) => {
-                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?"))
-                  return;
-
-                const token = localStorage.getItem("token");
-
-                const response = await fetch(
-                  `http://127.0.0.1:8000/cards/${cardId}`,
-                  {
-                    method: "DELETE",
-                    headers: { Authorization: `Bearer ${token}` },
-                  }
-                );
-
-                if (!response.ok) {
-                  alert("Error al eliminar la tarjeta");
-                  return;
-                }
-
-                setCards((prev) => prev.filter((c) => c.id !== cardId));
-              }}
+              onDelete={(id) =>
+                setCards((prev) => prev.filter((c) => c.id !== id))
+              }
             />
 
             <ListColumn
@@ -308,27 +334,9 @@ const Boards: React.FC = () => {
                 setCardEditando(c);
                 setMostrarCrearTarjeta(true);
               }}
-              onDelete={async (cardId) => {
-                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?"))
-                  return;
-
-                const token = localStorage.getItem("token");
-
-                const response = await fetch(
-                  `http://127.0.0.1:8000/cards/${cardId}`,
-                  {
-                    method: "DELETE",
-                    headers: { Authorization: `Bearer ${token}` },
-                  }
-                );
-
-                if (!response.ok) {
-                  alert("Error al eliminar la tarjeta");
-                  return;
-                }
-
-                setCards((prev) => prev.filter((c) => c.id !== cardId));
-              }}
+              onDelete={(id) =>
+                setCards((prev) => prev.filter((c) => c.id !== id))
+              }
             />
 
             <ListColumn
@@ -341,31 +349,12 @@ const Boards: React.FC = () => {
                 setCardEditando(c);
                 setMostrarCrearTarjeta(true);
               }}
-              onDelete={async (cardId) => {
-                if (!window.confirm("¿Seguro que quieres eliminar esta tarjeta?"))
-                  return;
-
-                const token = localStorage.getItem("token");
-
-                const response = await fetch(
-                  `http://127.0.0.1:8000/cards/${cardId}`,
-                  {
-                    method: "DELETE",
-                    headers: { Authorization: `Bearer ${token}` },
-                  }
-                );
-
-                if (!response.ok) {
-                  alert("Error al eliminar la tarjeta");
-                  return;
-                }
-
-                setCards((prev) => prev.filter((c) => c.id !== cardId));
-              }}
+              onDelete={(id) =>
+                setCards((prev) => prev.filter((c) => c.id !== id))
+              }
             />
           </div>
 
-          {/* ===================== DRAG OVERLAY ===================== */}
           <DragOverlay>
             {activeCard ? (
               <CardItem
@@ -396,7 +385,7 @@ const Boards: React.FC = () => {
           const token = localStorage.getItem("token");
 
           if (cardEditando) {
-            const response = await fetch(
+            const res = await fetch(
               `http://127.0.0.1:8000/cards/${cardEditando.id}`,
               {
                 method: "PATCH",
@@ -408,43 +397,32 @@ const Boards: React.FC = () => {
               }
             );
 
-            if (!response.ok) {
-              alert("Error al editar la tarjeta");
-              return;
-            }
-
-            const updatedCard = await response.json();
+            const updated = await res.json();
 
             setCards((prev) =>
               prev.map((c) =>
-                c.id === updatedCard.id
-                  ? { ...c, ...updatedCard, list_id: c.list_id }
-                  : c
+                c.id === updated.id ? { ...c, ...updated } : c
               )
             );
           } else {
-            const response = await fetch("http://127.0.0.1:8000/cards/", {
+            const res = await fetch("http://127.0.0.1:8000/cards/", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({
-                ...data,
-                board_id: boardId,
-              }),
+              body: JSON.stringify({ ...data, board_id: boardId }),
             });
 
-            if (!response.ok) {
-              alert("Error al crear la tarjeta");
-              return;
-            }
-
-            const newCard = await response.json();
+            const newCard = await res.json();
 
             setCards((prev) => [
               ...prev,
-              { ...newCard, list_id: LIST_IDS.POR_HACER },
+              {
+                ...newCard,
+                list_id: LIST_IDS.POR_HACER,
+                total_hours: 0,
+              },
             ]);
           }
 

@@ -52,7 +52,7 @@ const ListColumn: React.FC<ListColumnProps> = ({
               getDeadlineStatus={getDeadlineStatus}
               onEdit={onEdit}
               onDelete={onDelete}
-              onWorklogs={onWorklogs}   // ✅ AQUÍ ESTABA EL FALLO
+              onWorklogs={onWorklogs}   
             />
           ))}
         </SortableContext>

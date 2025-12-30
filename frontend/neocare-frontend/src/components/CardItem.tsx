@@ -2,6 +2,9 @@ import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+
+
+
 interface CardItemProps {
   card: any;
   getDeadlineStatus: (date: string) => string;
@@ -28,13 +31,37 @@ const CardItem: React.FC<CardItemProps> = ({
     cursor: "grab",
   };
 
+  console.log("Horas tarjeta:", card.id, card.total_hours);
+
   const stopDnd = (e: React.SyntheticEvent) => {
     e.stopPropagation();
   };
 
+  // ==============================
+  // Total de horas de la tarjeta
+  // (viene calculado desde backend)
+  // ==============================
+  const totalHours =
+    typeof card.total_hours === "number" ? card.total_hours : 0;
+
+  <div className="card-hours-total">
+    {totalHours.toFixed(2)} h 
+  </div>  
+  
   return (
-    <div ref={setNodeRef} style={style} className="card" {...attributes} {...listeners}>
-      <span className="status-badge status-por-hacer">Por hacer</span>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="card"
+      {...attributes}
+      {...listeners}
+    >
+      {/* ==============================
+          TOTAL DE HORAS (badge superior)
+         ============================== */}
+      <div className="card-hours-total">
+        {totalHours.toFixed(2)} h
+      </div>
 
       <div className="card-body">
         <h3>{card.title}</h3>
@@ -92,3 +119,4 @@ const CardItem: React.FC<CardItemProps> = ({
 };
 
 export default CardItem;
+

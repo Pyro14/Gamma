@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func   # ✅ NUEVO
 
 from backend.database import get_db
 from backend.auth.utils import get_current_user
@@ -12,6 +13,7 @@ from backend.cards.schemas import (
 )
 from backend.cards.models import Card
 from backend.models import Board, List, User
+from backend.worklogs.models import WorkLog   # ✅ NUEVO
 
 
 router = APIRouter(
@@ -73,7 +75,7 @@ def create_card(
 # ---------------------------------------------------------
 # GET /cards?board_id=...
 # ---------------------------------------------------------
-@router.get("/", response_model=list[CardResponse])
+@router.get("/", response_model=list[dict])
 def list_cards(
     board_id: int,
     db: Session = Depends(get_db),
@@ -87,11 +89,41 @@ def list_cards(
     if not board:
         raise HTTPException(status_code=403)
 
-    cards = db.query(Card).filter(
-        Card.board_id == board_id
-    ).order_by(Card.list_id).all()
+    # -----------------------------------------------------
+    # 🔥 Obtener tarjetas + total de horas
+    # -----------------------------------------------------
+    cards_with_hours = (
+        db.query(
+            Card,
+            func.coalesce(func.sum(WorkLog.hours), 0).label("total_hours")
+        )
+        .outerjoin(WorkLog, WorkLog.card_id == Card.id)
+        .filter(Card.board_id == board_id)
+        .group_by(Card.id)
+        .order_by(Card.list_id)
+        .all()
+    )
 
-    return cards
+    # -----------------------------------------------------
+    # Convertir a JSON incluyendo total_hours
+    # -----------------------------------------------------
+    result = []
+
+    for card, total_hours in cards_with_hours:
+        result.append({
+            "id": card.id,
+            "title": card.title,
+            "description": card.description,
+            "due_date": card.due_date,
+            "board_id": card.board_id,
+            "list_id": card.list_id,
+            "user_id": card.user_id,
+            "created_at": card.created_at,
+            "updated_at": card.updated_at,
+            "total_hours": float(total_hours),  # ✅ CLAVE
+        })
+
+    return result
 
 
 # ---------------------------------------------------------
