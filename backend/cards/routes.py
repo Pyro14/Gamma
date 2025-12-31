@@ -61,7 +61,7 @@ def create_card(
         description=card.description,
         due_date=card.due_date,
         board_id=board.id,
-        list_id=por_hacer_list.id,
+        list_id=card.list_id,
         user_id=current_user.id
     )
 

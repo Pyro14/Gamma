@@ -2,9 +2,6 @@ import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-
-
-
 interface CardItemProps {
   card: any;
   getDeadlineStatus: (date: string) => string;
@@ -20,6 +17,9 @@ const CardItem: React.FC<CardItemProps> = ({
   onEdit,
   onDelete,
 }) => {
+  // Protección de seguridad
+  if (!card) return null;
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id });
 
@@ -31,23 +31,13 @@ const CardItem: React.FC<CardItemProps> = ({
     cursor: "grab",
   };
 
-  console.log("Horas tarjeta:", card.id, card.total_hours);
-
+  // Detener la propagación para que los clics en botones no activen el arrastre
   const stopDnd = (e: React.SyntheticEvent) => {
     e.stopPropagation();
   };
 
-  // ==============================
-  // Total de horas de la tarjeta
-  // (viene calculado desde backend)
-  // ==============================
-  const totalHours =
-    typeof card.total_hours === "number" ? card.total_hours : 0;
+  const totalHours = typeof card.total_hours === "number" ? card.total_hours : 0;
 
-  <div className="card-hours-total">
-    {totalHours.toFixed(2)} h 
-  </div>  
-  
   return (
     <div
       ref={setNodeRef}
@@ -56,20 +46,18 @@ const CardItem: React.FC<CardItemProps> = ({
       {...attributes}
       {...listeners}
     >
-      {/* ==============================
-          TOTAL DE HORAS (badge superior)
-         ============================== */}
+      {/* Badge de horas: Solo número y símbolo */}
       <div className="card-hours-total">
-        {totalHours.toFixed(2)} h
+        ⏱ {totalHours.toFixed(2)} h
       </div>
 
       <div className="card-body">
-        <h3>{card.title}</h3>
-        {card.description && <p>{card.description}</p>}
+        <h3>{card.title || "Sin título"}</h3>
+        {/* Descripción eliminada para hacer la tarjeta más compacta */}
       </div>
 
       {card.due_date && (
-        <div className={`card-deadline ${getDeadlineStatus(card.due_date)}`}>
+        <div className={`card-deadline ${getDeadlineStatus ? getDeadlineStatus(card.due_date) : ""}`}>
           📅 Vence: {new Date(card.due_date).toLocaleDateString()}
         </div>
       )}
@@ -78,8 +66,6 @@ const CardItem: React.FC<CardItemProps> = ({
         <button
           className="hours-card-btn"
           onPointerDown={stopDnd}
-          onMouseDown={stopDnd}
-          onTouchStart={stopDnd}
           onClick={(e) => {
             e.stopPropagation();
             onWorklogs(card);
@@ -91,8 +77,6 @@ const CardItem: React.FC<CardItemProps> = ({
         <button
           className="edit-card-btn"
           onPointerDown={stopDnd}
-          onMouseDown={stopDnd}
-          onTouchStart={stopDnd}
           onClick={(e) => {
             e.stopPropagation();
             onEdit(card);
@@ -104,14 +88,12 @@ const CardItem: React.FC<CardItemProps> = ({
         <button
           className="delete-card-btn"
           onPointerDown={stopDnd}
-          onMouseDown={stopDnd}
-          onTouchStart={stopDnd}
           onClick={(e) => {
             e.stopPropagation();
             onDelete(card.id);
           }}
         >
-          🗑 Eliminar
+          🗑 Borrar
         </button>
       </div>
     </div>
@@ -119,4 +101,3 @@ const CardItem: React.FC<CardItemProps> = ({
 };
 
 export default CardItem;
-

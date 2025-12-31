@@ -13,17 +13,11 @@ import WorklogsModal from "../components/WorklogsModal";
 
 import { DndContext, DragOverlay } from "@dnd-kit/core"; // Contexto para drag-and-drop
 import { arrayMove } from "@dnd-kit/sortable";
-import { closestCenter } from "@dnd-kit/core";
+/*import { closestCenter } from "@dnd-kit/core";*/
+import {pointerWithin} from "@dnd-kit/core";
 
 // Importación de estilos específicos para la vista de tableros
 import "./Boards.css";
-
-// lista de estados de vencimiento
-const LIST_IDS = {
-  POR_HACER: 1,
-  EN_CURSO: 2,
-  HECHO: 3,
-};
 
 // ============================================================
 // Componente principal de la vista de Tablero (Boards)
@@ -47,6 +41,9 @@ const Boards: React.FC = () => {
 
   // Tarjetas del tablero actual
   const [cards, setCards] = useState<any[]>([]);
+
+  //  Listas del tablero (Por hacer, En curso, Hecho)
+  const [lists, setLists] = useState<any[]>([]);
 
   // ID del tablero activo del usuario
   const [boardId, setBoardId] = useState<number | null>(null);
@@ -118,13 +115,9 @@ const Boards: React.FC = () => {
 
         const boardsData = await boardsResponse.json();
 
-        // 🔥 BUSCAR EL TABLERO DEL USUARIO LOGUEADO
-        const myBoard = boardsData.find(
-          (b: any) => b.user_id === userData.id
-        );
-
-        if (myBoard) {
-          setBoardId(myBoard.id);
+        // /boards/ ya devuelve SOLO los boards del usuario
+        if (boardsData.length > 0) {
+          setBoardId(boardsData[0].id);
         } else {
           setError("El usuario no tiene tablero asignado");
         }
@@ -139,51 +132,17 @@ const Boards: React.FC = () => {
   }, []);
 
   /* =========================================================
-  /*Funcion reutilizable para cargar las tarjetas del tablero activo*/
-  /* ========================================================= */
-
-  const reloadCards = async () => {
-  if (!boardId) return;
-
-  const token = localStorage.getItem("token");
-
-  const response = await fetch(
-    `http://127.0.0.1:8000/cards/?board_id=${boardId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
-  );
-
-  const data = await response.json();
-
-  const normalized = data.map((card: any) => ({
-    ...card,
-    list_id: card.list_id ?? LIST_IDS.POR_HACER,
-    total_hours:
-      typeof card.total_hours === "number" ? card.total_hours : 0,
-  }));
-
-  setCards(normalized);
-};
-
-
-
-
-
-  /* =========================================================
-      useEffect → Cargar tarjetas del tablero activo
-     ========================================================= */
+    useEffect → Cargar listas del tablero activo
+   ========================================================= */
   useEffect(() => {
     if (!boardId) return;
 
-    const fetchCards = async () => {
+    const fetchLists = async () => {
       const token = localStorage.getItem("token");
 
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/cards/?board_id=${boardId}`,
+          `http://127.0.0.1:8000/lists/?board_id=${boardId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -192,26 +151,68 @@ const Boards: React.FC = () => {
         );
 
         if (!response.ok) {
-          console.error("Error al cargar tarjetas");
+          console.error("Error al cargar listas");
           return;
         }
 
         const data = await response.json();
-
-        const normalized = data.map((card: any) => ({
-          ...card,
-          list_id: card.list_id ?? LIST_IDS.POR_HACER,
-          total_hours:
-            typeof card.total_hours === "number" ? card.total_hours : 0,
-        }));
-
-        setCards(normalized);
+        setLists(data);
       } catch (error) {
-        console.error("No se pudo conectar con el servidor");
+        console.error("No se pudieron cargar las listas");
       }
     };
 
-    fetchCards();
+    fetchLists();
+  }, [boardId]);
+
+  const getPorHacerListId = () => {
+    const porHacer = lists.find((l: any) => l.name?.toLowerCase() === "por hacer");
+    return porHacer ? porHacer.id : null;
+  };
+
+  /* =========================================================
+    Función reutilizable para cargar las tarjetas del tablero activo
+   ========================================================= */
+  const reloadCards = async () => {
+    if (!boardId) return;
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      `http://127.0.0.1:8000/cards/?board_id=${boardId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      console.error("Error al cargar tarjetas");
+      return;
+    }
+
+    const data = await response.json();
+
+    const normalized = data.map((card: any) => ({
+      ...card,
+      list_id:
+        card.list_id === undefined || card.list_id === null
+          ? card.list_id
+          : Number(card.list_id),
+      total_hours: typeof card.total_hours === "number" ? card.total_hours : 0,
+    }));
+
+    setCards(normalized);
+  };
+
+  /* =========================================================
+      useEffect → Cargar tarjetas del tablero activo
+     ========================================================= */
+  useEffect(() => {
+    if (!boardId) return;
+    reloadCards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
 
   /* =========================================================
@@ -233,20 +234,19 @@ const Boards: React.FC = () => {
   const handleDragStart = (event: any) => {
     const { active } = event;
 
-    const found = cards.find((c) => c.id === active.id);
+    const found = cards.find((c) => String(c.id) === String(active.id));
 
     if (found) {
       setActiveCard({
         ...found,
-        total_hours:
-          typeof found.total_hours === "number" ? found.total_hours : 0,
+        total_hours: typeof found.total_hours === "number" ? found.total_hours : 0,
       });
     }
   };
 
   const handleDragOver = () => {};
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = async (event: any) => {
     const { active, over } = event;
 
     if (!over) {
@@ -255,24 +255,81 @@ const Boards: React.FC = () => {
     }
 
     const activeCardId = active.id;
+    const token = localStorage.getItem("token");
 
-    if (Object.values(LIST_IDS).includes(over.id)) {
-      const targetListId = over.id;
+    // Siempre sacar la tarjeta actual desde el estado (más fiable que usar activeCard state)
+    const activeCardNow = cards.find((c) => String(c.id) === String(activeCardId));
+    if (!activeCardNow) {
+      setActiveCard(null);
+      return;
+    }
 
+    // 1) Determinar targetListId (si suelto sobre columna o sobre tarjeta)
+    let targetListId: number | null = null;
+
+    // 🔥 PRIORIDAD 1: si sueltas sobre una TARJETA
+    const cardOver = cards.find((c) => c.id === Number(over.id));
+    if (cardOver) {
+      targetListId = cardOver.list_id;
+    } else {
+      // 🔥 PRIORIDAD 2: si sueltas sobre el fondo de la COLUMNA
+      const listOver = lists.find((l) => String(l.id) === String(over.id));
+      if (listOver) {
+        targetListId = listOver.id;
+      }
+    }
+    // Si no sabemos dónde cayó, terminamos
+    if (targetListId === null || Number.isNaN(targetListId)) {
+      setActiveCard(null);
+      return;
+    }
+
+    const fromListId = Number(activeCardNow.list_id);
+
+    // 2) Si cambia de columna → actualizo frontend + persisto backend
+    if (!Number.isNaN(fromListId) && targetListId !== fromListId) {
+      
       setCards((prev) =>
-        prev.map((card) =>
-          card.id === activeCardId ? { ...card, list_id: targetListId } : card
+        prev.map((c) =>
+          String(c.id) === String(activeCardId) ? { ...c, list_id: targetListId } : c
         )
       );
+
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/cards/${activeCardId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ list_id: targetListId }),
+        });
+
+        if (!res.ok) {
+          console.error("Error al mover tarjeta en backend");
+          // Revertir a lo que diga el backend
+          await reloadCards();
+          setActiveCard(null);
+          return;
+        }
+
+        // Dejar estado consistente
+        await reloadCards();
+      } catch (e) {
+        console.error("No se pudo conectar con el servidor (mover tarjeta)");
+        await reloadCards();
+      }
 
       setActiveCard(null);
       return;
     }
 
-    if (active.id !== over.id) {
+    // 3) Si NO cambia de columna → reordenación visual dentro de columna
+    if (String(active.id) !== String(over.id)) {
       setCards((prevCards) => {
-        const oldIndex = prevCards.findIndex((c) => c.id === active.id);
-        const newIndex = prevCards.findIndex((c) => c.id === over.id);
+        const oldIndex = prevCards.findIndex((c) => String(c.id) === String(active.id));
+        const newIndex = prevCards.findIndex((c) => String(c.id) === String(over.id));
+        if (oldIndex === -1 || newIndex === -1) return prevCards;
         return arrayMove(prevCards, oldIndex, newIndex);
       });
     }
@@ -303,56 +360,54 @@ const Boards: React.FC = () => {
         />
 
         <DndContext
-          collisionDetection={closestCenter}
+          collisionDetection={pointerWithin}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <div className="kanban">
-            <ListColumn
-              title="Por Hacer"
-              listId={LIST_IDS.POR_HACER}
-              cards={cards}
-              getDeadlineStatus={getDeadlineStatus}
-              onWorklogs={openWorklogs}
-              onEdit={(c) => {
-                setCardEditando(c);
-                setMostrarCrearTarjeta(true);
-              }}
-              onDelete={(id) =>
-                setCards((prev) => prev.filter((c) => c.id !== id))
-              }
-            />
+            {lists
+              .sort((a: any, b: any) => a.order - b.order)
+              .map((list: any) => (
+                <ListColumn
+                  key={list.id}
+                  title={list.name}
+                  listId={list.id}
+                  cards={cards}
+                  getDeadlineStatus={getDeadlineStatus}
+                  onWorklogs={openWorklogs}
+                  onEdit={(c) => {
+                    setCardEditando(c);
+                    setMostrarCrearTarjeta(true);
+                  }}
+                  onDelete={async (id) => {
+                    const confirmar = window.confirm(
+                      "¿Seguro que quieres eliminar esta tarjeta?"
+                    );
 
-            <ListColumn
-              title="En Curso"
-              listId={LIST_IDS.EN_CURSO}
-              cards={cards}
-              getDeadlineStatus={getDeadlineStatus}
-              onWorklogs={openWorklogs}
-              onEdit={(c) => {
-                setCardEditando(c);
-                setMostrarCrearTarjeta(true);
-              }}
-              onDelete={(id) =>
-                setCards((prev) => prev.filter((c) => c.id !== id))
-              }
-            />
+                    if (!confirmar) return;
 
-            <ListColumn
-              title="Hecho"
-              listId={LIST_IDS.HECHO}
-              cards={cards}
-              getDeadlineStatus={getDeadlineStatus}
-              onWorklogs={openWorklogs}
-              onEdit={(c) => {
-                setCardEditando(c);
-                setMostrarCrearTarjeta(true);
-              }}
-              onDelete={(id) =>
-                setCards((prev) => prev.filter((c) => c.id !== id))
-              }
-            />
+                    const token = localStorage.getItem("token");
+
+                    const res = await fetch(
+                      `http://127.0.0.1:8000/cards/${id}`,
+                      {
+                        method: "DELETE",
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                        },
+                      } 
+                    );     
+                    if (!res.ok) {
+                      alert("Error al eliminar la tarjeta");
+                      return;
+                    }      
+
+                    // 🔁 Recargamos desde backend para mantener coherencia
+                    await reloadCards();
+                  }}  
+                />
+              ))}
           </div>
 
           <DragOverlay>
@@ -369,67 +424,82 @@ const Boards: React.FC = () => {
         </DndContext>
       </div>
 
-      {/* =========================================================
-          MODAL CREAR / EDITAR
-         ========================================================= */}
-      <CrearVentanaEmergente
-        isOpen={mostrarCrearTarjeta}
-        cardInicial={cardEditando}
-        onClose={() => {
-          setMostrarCrearTarjeta(false);
-          setCardEditando(null);
-        }}
-        onSubmit={async (data) => {
-          if (!boardId) return;
+{/* =========================================================
+    MODAL CREAR / EDITAR
+   ========================================================= */}
+<CrearVentanaEmergente
+  isOpen={mostrarCrearTarjeta}
+  cardInicial={cardEditando}
+  onClose={() => {
+    setMostrarCrearTarjeta(false);
+    setCardEditando(null);
+  }}
+  onSubmit={async (data) => {
+    if (!boardId) return;
 
-          const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-          if (cardEditando) {
-            const res = await fetch(
-              `http://127.0.0.1:8000/cards/${cardEditando.id}`,
-              {
-                method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(data),
-              }
-            );
+    // =========================
+    // EDITAR TARJETA
+    // =========================
+    if (cardEditando) {
+      const res = await fetch(
+        `http://127.0.0.1:8000/cards/${cardEditando.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        }
+      );
 
-            const updated = await res.json();
+      if (!res.ok) {
+        alert("Error al editar la tarjeta");
+        return;
+      }
 
-            setCards((prev) =>
-              prev.map((c) =>
-                c.id === updated.id ? { ...c, ...updated } : c
-              )
-            );
-          } else {
-            const res = await fetch("http://127.0.0.1:8000/cards/", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ ...data, board_id: boardId }),
-            });
+      await reloadCards();
+    }
 
-            const newCard = await res.json();
+    // =========================
+    // CREAR TARJETA
+    // =========================
+    else {
+      const porHacerListId = getPorHacerListId();
 
-            setCards((prev) => [
-              ...prev,
-              {
-                ...newCard,
-                list_id: LIST_IDS.POR_HACER,
-                total_hours: 0,
-              },
-            ]);
-          }
+      if (!porHacerListId) {
+        alert("No se encontró la lista 'Por hacer'");
+        return;
+      }
 
-          setMostrarCrearTarjeta(false);
-          setCardEditando(null);
-        }}
-      />
+      const res = await fetch("http://127.0.0.1:8000/cards/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...data,
+          board_id: boardId,
+          list_id: porHacerListId, // 🔥 CLAVE
+        }),
+      });
+
+      if (!res.ok) {
+        alert("Error al crear la tarjeta");
+        return;
+      }
+
+      await reloadCards();
+    }
+
+    setMostrarCrearTarjeta(false);
+    setCardEditando(null);
+  }}
+/>
+
 
       {/* =========================================================
           ✅ MODAL DE HORAS (WORKLOGS)
@@ -437,6 +507,7 @@ const Boards: React.FC = () => {
       <WorklogsModal
         isOpen={isWorklogsOpen}
         onClose={closeWorklogs}
+        onSaved={reloadCards}
         card={worklogsCard}
         currentUser={user}
         apiBaseUrl="http://127.0.0.1:8000"
@@ -446,3 +517,4 @@ const Boards: React.FC = () => {
 };
 
 export default Boards;
+
