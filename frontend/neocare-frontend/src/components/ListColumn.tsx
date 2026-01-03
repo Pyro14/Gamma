@@ -4,8 +4,9 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 
 /**
- * CardItem Component
- * Defined locally to ensure compatibility with the Canvas preview environment
+ * Componente CardItem
+ * Representa de forma individual cada tarjeta (tarea) del tablero.
+ * Incluye la lógica de arrastre (dnd-kit) y acciones de edición/borrado.
  */
 interface CardItemProps {
   card: any;
@@ -24,13 +25,15 @@ const CardItem: React.FC<CardItemProps> = ({
 }) => {
   if (!card) return null;
 
+  // Hook para habilitar el comportamiento de ordenación/arrastre en la tarjeta
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: card.id });
 
+  // Estilos dinámicos para manejar la transformación visual durante el arrastre
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.6 : 1,
+    opacity: isDragging ? 0.6 : 1, // Feedback visual al arrastrar
     boxShadow: isDragging ? "0 8px 20px rgba(0, 0, 0, 0.25)" : "none",
     cursor: "grab",
     backgroundColor: '#ffffff',
@@ -42,6 +45,7 @@ const CardItem: React.FC<CardItemProps> = ({
     flexDirection: 'column'
   };
 
+  // Evita que el evento de arrastre se dispare al hacer clic en los botones de acción
   const stopDnd = (e: React.SyntheticEvent) => {
     e.stopPropagation();
   };
@@ -56,6 +60,7 @@ const CardItem: React.FC<CardItemProps> = ({
       {...attributes}
       {...listeners}
     >
+      {/* Visualización de las horas totales registradas en la tarjeta */}
       <div className="card-hours-total" style={{ color: '#1a73e8', fontWeight: 'bold', fontSize: '0.85em' }}>
         ⏱ {totalHours.toFixed(2)} h
       </div>
@@ -64,12 +69,14 @@ const CardItem: React.FC<CardItemProps> = ({
         <h3 style={{ margin: 0, fontSize: '1rem' }}>{card.title || "Sin título"}</h3>
       </div>
 
+      {/* Fecha de vencimiento con estado visual dinámico (colores según cercanía) */}
       {card.due_date && (
         <div className={`card-deadline ${getDeadlineStatus ? getDeadlineStatus(card.due_date) : ""}`} style={{ fontSize: '0.8em', marginBottom: '8px' }}>
           📅 Vence: {new Date(card.due_date).toLocaleDateString()}
         </div>
       )}
 
+      {/* Botones de acción: Registro de horas, Edición y Eliminación */}
       <div className="card-actions" style={{ display: 'flex', gap: '8px', borderTop: '1px solid #eee', paddingTop: '8px' }}>
         <button
           className="hours-card-btn"
@@ -101,7 +108,9 @@ const CardItem: React.FC<CardItemProps> = ({
 };
 
 /**
- * ListColumn Component
+ * Componente ListColumn
+ * Representa una columna del tablero Kanban (ej: To Do, In Progress, Done).
+ * Se encarga de filtrar las tarjetas que le pertenecen y ordenarlas.
  */
 interface ListColumnProps {
   title: string;
@@ -122,21 +131,29 @@ const ListColumn: React.FC<ListColumnProps> = ({
   onDelete,
   onWorklogs,
 }) => {
+  // Define esta columna como una zona donde se pueden soltar elementos (droppable)
   const { setNodeRef } = useDroppable({
     id: String(listId),
   });
 
+  /**
+   * Lógica de Filtrado y Ordenación:
+   * 1. Filtramos las tarjetas para mostrar solo las que coincidan con 'listId'.
+   * 2. Ordenamos de forma descendente basándonos en 'total_hours'.
+   */
   const columnCards = (Array.isArray(cards) ? cards : [])
     .filter((card) => {
       if (!card) return false;
+      // Normalizamos el ID de lista (por defecto 1 si es nulo)
       const effectiveListId =
         card.list_id === undefined || card.list_id === null ? 1 : Number(card.list_id);
       return effectiveListId === listId;
     })
     .sort((a, b) => {
-      if (!a.due_date) return 1;
-      if (!b.due_date) return -1;
-      return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      // Ordenación: De más horas registradas a menos (Descendente)
+      const hoursA = typeof a.total_hours === "number" ? a.total_hours : 0;
+      const hoursB = typeof b.total_hours === "number" ? b.total_hours : 0;
+      return hoursB - hoursA;
     });
 
   return (
@@ -144,6 +161,7 @@ const ListColumn: React.FC<ListColumnProps> = ({
       <h2 className="column-header" style={{ marginBottom: '15px' }}>{title}</h2>
 
       <div className="cards-container">
+        {/* Contexto necesario para que dnd-kit sepa qué IDs están presentes en esta columna */}
         <SortableContext
           items={columnCards.map((card) => String(card.id))}
           strategy={verticalListSortingStrategy}
