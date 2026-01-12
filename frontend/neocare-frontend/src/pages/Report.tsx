@@ -43,6 +43,7 @@ type ListItem = {
 const API_BASE = "http://127.0.0.1:8000";
 
 function getCurrentISOWeek(): string {
+  // Calcula la semana ISO (YYYY-WW) para el selector por defecto
   const date = new Date();
   const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 
@@ -57,12 +58,14 @@ function getCurrentISOWeek(): string {
 }
 
 function toWeekInputValue(week: string): string {
+  // Convierte YYYY-WW a formato input[type="week"] => YYYY-Www
   if (!week) return "";
   const [year, num] = week.split("-");
   return `${year}-W${num}`;
 }
 
 function fromWeekInputValue(value: string): string {
+  // Convierte formato input[type="week"] a YYYY-WW
   if (!value) return "";
   const [year, num] = value.split("-W");
   return `${year}-${num}`;
@@ -83,6 +86,7 @@ const Report: React.FC = () => {
   const weekInputValue = useMemo(() => toWeekInputValue(week), [week]);
 
   const fetchUserAndBoard = async () => {
+    // Carga usuario autenticado y el primer board disponible
     const token = localStorage.getItem("token");
     if (!token) {
       setError("Necesitas iniciar sesión para ver el informe.");
@@ -123,6 +127,7 @@ const Report: React.FC = () => {
   };
 
   const fetchLists = async (board: number, token: string) => {
+    // Carga nombres de listas para mostrar el estado en resumen
     try {
       const res = await fetch(`${API_BASE}/lists/?board_id=${board}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -140,6 +145,7 @@ const Report: React.FC = () => {
   };
 
   const fetchReportData = async () => {
+    // Lanza las 3 peticiones del informe en paralelo
     if (!boardId) return;
     const token = localStorage.getItem("token");
     if (!token) {
@@ -191,10 +197,12 @@ const Report: React.FC = () => {
   };
 
   useEffect(() => {
+    // Inicializa sesión/board al montar
     fetchUserAndBoard();
   }, []);
 
   useEffect(() => {
+    // Recarga datos al cambiar board o semana
     if (boardId) {
       fetchReportData();
     }
@@ -244,6 +252,7 @@ const Report: React.FC = () => {
   };
 
   const downloadCsv = (rows: any[], headers: string[], filename: string) => {
+    // Construye CSV y dispara la descarga en navegador
     if (!rows.length) return;
     const csvContent = [
       headers.join(","),
@@ -273,6 +282,7 @@ const Report: React.FC = () => {
   };
 
   const exportUsersCsv = () => {
+    // Exporta la tabla de horas por persona
     const rows = hoursByUser.map((row) => ({
       Usuario: row.user_id,
       "Horas totales": row.total_hours,
@@ -282,6 +292,7 @@ const Report: React.FC = () => {
   };
 
   const exportCardsCsv = () => {
+    // Exporta la tabla de horas por tarjeta
     const rows = hoursByCard.map((row) => ({
       Tarjeta: row.title,
       Responsable: labelForResponsible(row.responsible_id),

@@ -1,6 +1,7 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import "./CardItem.css";
 
 interface CardItemProps {
   card: any;
@@ -36,7 +37,27 @@ const CardItem: React.FC<CardItemProps> = ({
     e.stopPropagation();
   };
 
+  // Datos derivados para pintar etiquetas y progreso
   const totalHours = typeof card.total_hours === "number" ? card.total_hours : 0;
+  const labels = Array.isArray(card.labels) ? card.labels : [];
+  const subtasksTotal = typeof card.subtasks_total === "number" ? card.subtasks_total : 0;
+  const subtasksCompleted = typeof card.subtasks_completed === "number" ? card.subtasks_completed : 0;
+  const progress = subtasksTotal > 0 ? Math.round((subtasksCompleted / subtasksTotal) * 100) : 0;
+
+  const labelColor = (color: string) => {
+    switch (color) {
+      case "red":
+        return "#ef4444";
+      case "green":
+        return "#22c55e";
+      case "yellow":
+        return "#eab308";
+      case "blue":
+        return "#3b82f6";
+      default:
+        return "#64748b";
+    }
+  };
 
   return (
     <div
@@ -55,6 +76,31 @@ const CardItem: React.FC<CardItemProps> = ({
         <h3>{card.title || "Sin título"}</h3>
         {/* Descripción eliminada para hacer la tarjeta más compacta */}
       </div>
+
+      {labels.length > 0 && (
+        <div className="card-labels">
+          {labels.map((lbl: any) => (
+            <span
+              key={lbl.id ?? `${lbl.name}-${lbl.color}`}
+              className="card-label"
+              style={{ backgroundColor: labelColor(lbl.color) }}
+            >
+              {lbl.name}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {subtasksTotal > 0 && (
+        <div className="card-progress">
+          <div className="card-progress-info">
+            ✅ {subtasksCompleted}/{subtasksTotal} completadas ({progress}%)
+          </div>
+          <div className="card-progress-bar">
+            <div className="card-progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
 
       {card.due_date && (
         <div className={`card-deadline ${getDeadlineStatus ? getDeadlineStatus(card.due_date) : ""}`}>

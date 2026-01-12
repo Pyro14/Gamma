@@ -58,6 +58,11 @@ const Boards: React.FC = () => {
   const [isWorklogsOpen, setIsWorklogsOpen] = useState(false);
   const [worklogsCard, setWorklogsCard] = useState<any | null>(null);
 
+  // Filtros y búsqueda
+  const [searchTerm, setSearchTerm] = useState("");
+  const [responsibleFilter, setResponsibleFilter] = useState<string>("all");
+  const [labelFilter, setLabelFilter] = useState<string>("all");
+
   /* =========================================================
       UTILIDAD: calcular estado de vencimiento
      ========================================================= */
@@ -194,6 +199,7 @@ const Boards: React.FC = () => {
 
     const data = await response.json();
 
+    // Normalizamos campos para evitar null/undefined en UI
     const normalized = data.map((card: any) => ({
       ...card,
       list_id:
@@ -201,6 +207,9 @@ const Boards: React.FC = () => {
           ? card.list_id
           : Number(card.list_id),
       total_hours: typeof card.total_hours === "number" ? card.total_hours : 0,
+      labels: Array.isArray(card.labels) ? card.labels : [],
+      subtasks_total: typeof card.subtasks_total === "number" ? card.subtasks_total : 0,
+      subtasks_completed: typeof card.subtasks_completed === "number" ? card.subtasks_completed : 0,
     }));
 
     setCards(normalized);
@@ -214,6 +223,48 @@ const Boards: React.FC = () => {
     reloadCards();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boardId]);
+
+  // Generamos los filtros a partir de los datos cargados
+  const uniqueResponsibles = Array.from(
+    new Set(cards.map((c) => (c.user_id === null || c.user_id === undefined ? "none" : String(c.user_id))))
+  );
+
+  const uniqueLabels = Array.from(
+    new Map(
+      cards
+        .flatMap((c) => (Array.isArray(c.labels) ? c.labels : []))
+        .map((lbl: any) => [`${lbl.name}::${lbl.color}`, lbl])
+    ).values()
+  );
+
+  // Filtro local por búsqueda, responsable y etiqueta
+  const filteredCards = cards.filter((card) => {
+    const title = String(card.title || "").toLowerCase();
+    const description = String(card.description || "").toLowerCase();
+    const query = searchTerm.trim().toLowerCase();
+
+    if (query && !title.includes(query) && !description.includes(query)) {
+      return false;
+    }
+
+    if (responsibleFilter !== "all") {
+      if (responsibleFilter === "none") {
+        if (card.user_id !== null && card.user_id !== undefined) return false;
+      } else if (String(card.user_id) !== responsibleFilter) {
+        return false;
+      }
+    }
+
+    if (labelFilter !== "all") {
+      const [name, color] = labelFilter.split("::");
+      const hasLabel = (card.labels || []).some(
+        (lbl: any) => lbl.name === name && lbl.color === color
+      );
+      if (!hasLabel) return false;
+    }
+
+    return true;
+  });
 
   /* =========================================================
       ✅ Abrir modal de horas Worklogs
@@ -357,7 +408,58 @@ const Boards: React.FC = () => {
             setCardEditando(null);
             setMostrarCrearTarjeta(true);
           }}
+          onInforme={() => {
+            window.location.href = "/report";
+          }}
         />
+
+        <div className="board-main">
+          <div className="board-toolbar">
+            <input
+              type="text"
+              className="board-search"
+              placeholder="Buscar por título o descripción..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            <select
+              className="board-select"
+              value={responsibleFilter}
+              onChange={(e) => setResponsibleFilter(e.target.value)}
+            >
+              <option value="all">Todos los responsables</option>
+              {uniqueResponsibles.map((id) => (
+                <option key={id} value={id}>
+                  {id === "none" ? "Sin asignar" : `Usuario ${id}`}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="board-select"
+              value={labelFilter}
+              onChange={(e) => setLabelFilter(e.target.value)}
+            >
+              <option value="all">Todas las etiquetas</option>
+              {uniqueLabels.map((lbl: any) => (
+                <option key={`${lbl.name}-${lbl.color}`} value={`${lbl.name}::${lbl.color}`}>
+                  {lbl.name} ({lbl.color})
+                </option>
+              ))}
+            </select>
+
+            <button
+              className="board-clear"
+              onClick={() => {
+                setSearchTerm("");
+                setResponsibleFilter("all");
+                setLabelFilter("all");
+              }}
+            >
+              Limpiar filtros
+            </button>
+          </div>
 
         <DndContext
           collisionDetection={pointerWithin}
@@ -373,7 +475,7 @@ const Boards: React.FC = () => {
                   key={list.id}
                   title={list.name}
                   listId={list.id}
-                  cards={cards}
+                  cards={filteredCards}
                   getDeadlineStatus={getDeadlineStatus}
                   onWorklogs={openWorklogs}
                   onEdit={(c) => {
@@ -422,6 +524,7 @@ const Boards: React.FC = () => {
             ) : null}
           </DragOverlay>
         </DndContext>
+        </div>
       </div>
 
 {/* =========================================================
@@ -434,6 +537,7 @@ const Boards: React.FC = () => {
     setMostrarCrearTarjeta(false);
     setCardEditando(null);
   }}
+  onExtrasUpdated={reloadCards}
   onSubmit={async (data) => {
     if (!boardId) return;
 
@@ -517,4 +621,3 @@ const Boards: React.FC = () => {
 };
 
 export default Boards;
-

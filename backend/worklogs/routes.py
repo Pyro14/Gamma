@@ -36,7 +36,7 @@ def create_worklog(
     current_user: User = Depends(get_current_user),
 ):
     # -----------------------------
-    # Validaciones obligatorias
+    # Validaciones obligatorias (reglas de negocio básicas)
     # -----------------------------
     if data.hours <= 0:
         raise HTTPException(status_code=400, detail="Hours must be > 0")

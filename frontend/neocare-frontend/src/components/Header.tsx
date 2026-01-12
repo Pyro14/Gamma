@@ -28,25 +28,6 @@ const Header: React.FC<HeaderProps> = ({ user }) => {
 
       {/* Sección derecha del header: usuario + botón de logout */}
       <div className="header-right">
-        <div className="header-actions">
-          <button
-            className="nav-button"
-            onClick={() => {
-              window.location.href = "/boards";
-            }}
-          >
-            Tablero
-          </button>
-          <button
-            className="nav-button"
-            onClick={() => {
-              window.location.href = "/report";
-            }}
-          >
-            Informe
-          </button>
-        </div>
-
         {/* Muestra el nombre del usuario actualmente logueado */}
         <span className="user-name">{userName}</span>
 

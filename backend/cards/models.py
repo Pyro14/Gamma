@@ -7,6 +7,7 @@ from sqlalchemy import (
     Text,
     Date,
     DateTime,
+    Boolean,
     ForeignKey,
     func
 )
@@ -49,3 +50,29 @@ class Card(Base):
     list = relationship("List", back_populates="cards")
     owner = relationship("User", back_populates="cards")
     worklogs = relationship("WorkLog", back_populates="card", cascade="all, delete-orphan")
+    labels = relationship("Label", back_populates="card", cascade="all, delete-orphan")
+    subtasks = relationship("Subtask", back_populates="card", cascade="all, delete-orphan")
+
+
+class Label(Base):
+    # Etiqueta simple asociada a una tarjeta (nombre + color)
+    __tablename__ = "labels"
+
+    id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(30), nullable=False)
+    color = Column(String(20), nullable=False)
+
+    card = relationship("Card", back_populates="labels")
+
+
+class Subtask(Base):
+    # Subtarea/checklist con estado de completado
+    __tablename__ = "subtasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(Integer, ForeignKey("cards.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(100), nullable=False)
+    completed = Column(Boolean, default=False, nullable=False)
+
+    card = relationship("Card", back_populates="subtasks")

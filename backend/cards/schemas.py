@@ -55,3 +55,43 @@ class CardResponse(BaseModel):
 # -------------------------------------------------------
 class CardDeleteResponse(BaseModel):
     message: str
+
+
+# -------------------------------------------------------
+# LABELS
+# -------------------------------------------------------
+class LabelCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=30)
+    color: str = Field(..., min_length=1, max_length=20)
+
+
+class LabelOut(BaseModel):
+    id: int
+    card_id: int
+    name: str
+    color: str
+
+    class Config:
+        orm_mode = True
+
+
+# -------------------------------------------------------
+# SUBTASKS
+# -------------------------------------------------------
+class SubtaskCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=100)
+
+
+class SubtaskUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=100)
+    completed: Optional[bool] = None
+
+
+class SubtaskOut(BaseModel):
+    id: int
+    card_id: int
+    title: str
+    completed: bool
+
+    class Config:
+        orm_mode = True
