@@ -12,6 +12,7 @@ from .boards.routes import router as boards_router
 from backend.cards.routes import router as cards_router
 from backend.worklogs.routes import router as worklogs_router
 from backend.lists.routes import router as lists_router
+from backend.reportsweek.routes import router as reports_router
 
 # =========================================================
 # Crear aplicación FastAPI
@@ -50,6 +51,7 @@ app.include_router(boards_router)
 app.include_router(cards_router)
 app.include_router(worklogs_router)
 app.include_router(lists_router)
+app.include_router(reports_router)
 
 # =========================================================
 # Endpoint de test de conexión

@@ -31,7 +31,26 @@
 .header-right {
   display: flex;        /* Coloca los elementos en línea */
   align-items: center;
-  gap: 25px;            /* Espacio entre nombre y botón */
+  gap: 18px;            /* Espacio entre nombre y botón */
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-button {
+  background: #0f5ecd;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.nav-button:hover {
+  background: #0c4da1;
 }
 
 
