@@ -38,11 +38,11 @@ const Sidebar: React.FC<SidebarProps> = ({ user, onCrearTarjeta, onInforme }) =>
           ➕ Crear tarjeta
         </li>
 
-        <li>⏱️ Mis horas</li>
+        
         <li onClick={onInforme} role="button">
           📊 Informe
         </li>
-        <li>⚙️ Configuración</li>
+        
       </ul>
     </aside>
   );

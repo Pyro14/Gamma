@@ -396,7 +396,6 @@ const WorklogsModal: React.FC<WorklogsModalProps> = ({
           </div>
           <div className="wl-actions">
             <button className="btn-add" onClick={onCreate} disabled={loading}>Añadir Horas</button>
-            <button className="btn-reload" onClick={loadWorklogs} disabled={loading}>Recargar</button>
           </div>
         </div>
 
