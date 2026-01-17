@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: gamma-backend
+    env: python
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        value: "<DATABASE_URL_HERE>" # Placeholder to be set in Render environment
