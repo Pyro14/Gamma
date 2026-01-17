@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import get_db, engine, Base
 import models
@@ -13,14 +13,8 @@ from worklogs.routes import router as worklogs_router
 from lists.routes import router as lists_router
 from reportsweek.routes import router as reports_router
 
-# =========================================================
-# Crear aplicación FastAPI
-# =========================================================
 app = FastAPI()
 
-# =========================================================
-# CONFIGURACIÓN CORS
-# =========================================================
 origins = ["*"]
 
 app.add_middleware(
@@ -31,14 +25,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================================================
-# Crear tablas en BD (solo si no existen)
-# =========================================================
 Base.metadata.create_all(bind=engine)
 
-# =========================================================
-# Registrar routers (endpoints principales + extras)
-# =========================================================
 app.include_router(auth_router)
 app.include_router(boards_router)
 app.include_router(cards_router)
@@ -47,9 +35,6 @@ app.include_router(worklogs_router)
 app.include_router(lists_router)
 app.include_router(reports_router)
 
-# =========================================================
-# Endpoint de test de conexión
-# =========================================================
 @app.get("/ping")
 def db_ping(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))

@@ -1,1 +1,3 @@
-DATABASE_URL = "postgresql://postgres:1234@localhost:5432/neocare"
+import os
+
+DATABASE_URL = os.getenv("DATABASE_URL")

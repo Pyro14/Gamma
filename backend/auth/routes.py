@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from ..database import get_db
+from database import get_db
 from .. import models
 from . import schemas
 from .utils import (
