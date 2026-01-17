@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, Float, Date, String, ForeignKey, DateTim
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
-from ..database import Base
+from backend.database import Base
 
 
 # ============================================================

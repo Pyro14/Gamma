@@ -3,15 +3,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 
-from database import get_db, engine, Base
-import models
+from backend.database import get_db, engine, Base
+from backend import models
 
-from auth.routes import router as auth_router
-from boards.routes import router as boards_router
-from cards.routes import router as cards_router, extras_router as cards_extras_router
-from worklogs.routes import router as worklogs_router
-from lists.routes import router as lists_router
-from reportsweek.routes import router as reports_router
+from backend.auth.routes import router as auth_router
+from backend.boards.routes import router as boards_router
+from backend.cards.routes import router as cards_router, extras_router as cards_extras_router
+from backend.worklogs.routes import router as worklogs_router
+from backend.lists.routes import router as lists_router
+from backend.reportsweek.routes import router as reports_router
 
 app = FastAPI()
 
