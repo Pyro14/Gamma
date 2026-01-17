@@ -7,8 +7,8 @@ import jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from ..database import get_db
-from .. import models
+from backend.database import get_db
+from backend import models
 
 # =============================
 # Configuración de JWT
