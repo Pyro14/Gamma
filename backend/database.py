@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-from .config import DATABASE_URL
+from config import DATABASE_URL
 
 
 # Crea el motor de conexión a PostgreSQL
