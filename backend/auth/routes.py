@@ -5,10 +5,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
-from database import get_db
-from .. import models
-from . import schemas
-from .utils import (
+from backend.database import get_db
+from backend import models
+from backend.auth import schemas
+from backend.auth.utils import (
     hash_password,
     verify_password,
     create_access_token,
@@ -16,8 +16,8 @@ from .utils import (
 )
 
 # 🔽 IMPORTS PARA WORKLOGS (PASO C)
-from ..worklogs.models import WorkLog
-from ..worklogs.schemas import WorkLogOut
+from backend.worklogs.models import WorkLog
+from backend.worklogs.schemas import WorkLogOut
 
 
 # Definimos router con prefijo /auth
